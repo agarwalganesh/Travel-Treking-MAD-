@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Staff - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center py-4">
+        <div class="col-md-6 col-lg-5">
+            <div class="card card-premium">
+                <div class="card-premium-header text-center bg-success" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+                    <h3 class="mb-1"><i class="bi bi-people-fill me-2"></i>Staff Registration</h3>
+                    <p class="mb-0 small text-white-50">Apply to join as a Trek Leader / Staff</p>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info py-2 px-3 mb-4 small" style="border-radius: var(--border-radius);">
+                        <i class="bi bi-info-circle-fill me-1"></i>Staff accounts are created with a <strong>Pending</strong> status. You can login only after an Admin approves your application.
+                    </div>
+                    
+                    <form action="{{ url_for('register_staff') }}" method="POST" class="needs-validation" novalidate id="staffRegisterForm">
+                        
+                        <!-- Full Name Input -->
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required placeholder="John Doe">
+                                <div class="invalid-feedback">Please enter your full name.</div>
+                            </div>
+                        </div>
+
+                        <!-- Email Input -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required placeholder="john@example.com">
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
+                            </div>
+                        </div>
+
+                        <!-- Phone Number Input -->
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone" required placeholder="9876543211" pattern="^[0-9]{10,15}$">
+                                <div class="invalid-feedback">Please enter a valid 10-15 digit phone number.</div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Details / Credentials Info -->
+                        <div class="mb-3">
+                            <label for="contact_details" class="form-label">Professional Credentials & Bio</label>
+                            <textarea class="form-control" id="contact_details" name="contact_details" rows="3" required placeholder="Describe your trekking experience, certifications, wilderness first aid skills, etc."></textarea>
+                            <div class="invalid-feedback">Please enter your professional bio or credentials.</div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required placeholder="Enter password (min 6 chars)" minlength="6">
+                                <div class="invalid-feedback">Password must be at least 6 characters.</div>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password Input -->
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="Re-enter password">
+                                <div class="invalid-feedback">Passwords must match.</div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-send-fill me-2"></i>Submit Application
+                            </button>
+                        </div>
+                        
+                    </form>
+
+                    <hr class="text-muted">
+
+                    <div class="text-center mt-3">
+                        <p class="mb-0 text-muted small">Already have an account? <a href="{{ url_for('login') }}" class="fw-semibold text-success text-decoration-none">Sign In</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Check password equality client-side
+document.getElementById('staffRegisterForm').addEventListener('submit', function (event) {
+    var password = document.getElementById('password').value;
+    var confirm = document.getElementById('confirm_password').value;
+    var confirmField = document.getElementById('confirm_password');
+    
+    if (password !== confirm) {
+        confirmField.setCustomValidity("Passwords do not match");
+        event.preventDefault();
+        event.stopPropagation();
+    } else {
+        confirmField.setCustomValidity("");
+    }
+    
+    if (!this.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    this.classList.add('was-validated');
+});
+</script>
+{% endblock %}

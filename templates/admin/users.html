@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Users - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="mb-4">
+        <h2 class="fw-bold"><i class="bi bi-people text-primary me-2"></i>Manage Users (Trekkers)</h2>
+        <p class="text-muted">Search through registered trekkers, monitor registration history, and blacklist users if necessary.</p>
+    </div>
+
+    <!-- Search Users Card -->
+    <div class="card card-premium p-4 mb-4">
+        <form method="GET" action="{{ url_for('manage_users') }}" class="row g-3">
+            <div class="col-md-8">
+                <label for="search" class="form-label small fw-semibold">Search by Name or ID</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="e.g. Alice or 3" value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+                <a href="{{ url_for('manage_users') }}" class="btn btn-outline-secondary w-100">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Users List Directory -->
+    <div class="card card-premium">
+        <div class="card-premium-header bg-dark">
+            <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Trekker Directory</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-premium mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th>Full Name</th>
+                        <th>Email Address</th>
+                        <th>Phone Number</th>
+                        <th>Registration Date</th>
+                        <th>Status</th>
+                        <th class="text-end" style="width: 150px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td><code>#{{ user.id }}</code></td>
+                            <td><strong>{{ user.full_name }}</strong></td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.phone }}</td>
+                            <td>{{ user.created_at.strftime('%d %b %Y %H:%M') }}</td>
+                            <td>
+                                {% if user.is_blacklisted %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-octagon me-1"></i>Blacklisted</span>
+                                {% else %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if user.is_blacklisted %}
+                                    <form action="{{ url_for('toggle_blacklist_user', user_id=user.id) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-success btn-sm w-100">
+                                            <i class="bi bi-unlock me-1"></i>Unblacklist
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form action="{{ url_for('toggle_blacklist_user', user_id=user.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to blacklist this user? They will not be able to log in or book treks.');" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                            <i class="bi bi-slash-circle me-1"></i>Blacklist
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="bi bi-search fs-2 d-block mb-2"></i>
+                                <span>No users found matching the search criteria.</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center py-4">
+        <div class="col-md-6 col-lg-5">
+            <div class="card card-premium">
+                <div class="card-premium-header text-center">
+                    <h3 class="mb-1"><i class="bi bi-shield-lock me-2"></i>Sign In</h3>
+                    <p class="mb-0 small text-white-50">Access your TrekQuest account</p>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('login') }}" method="POST" class="needs-validation" novalidate>
+                        
+                        <!-- Email Input -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required placeholder="name@example.com">
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
+                            </div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required placeholder="Enter password">
+                                <div class="invalid-feedback">Please enter your password.</div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                            </button>
+                        </div>
+                        
+                    </form>
+
+                    <hr class="text-muted">
+
+                    <div class="text-center mt-3">
+                        <p class="mb-1 text-muted small">New to TrekQuest?</p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{{ url_for('register_user') }}" class="small fw-semibold text-primary text-decoration-none">
+                                <i class="bi bi-person-plus me-1"></i>Register as Trekker
+                            </a>
+                            <span class="text-muted">|</span>
+                            <a href="{{ url_for('register_staff') }}" class="small fw-semibold text-success text-decoration-none">
+                                <i class="bi bi-people me-1"></i>Register as Staff
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Default Credentials Box for Viva Examiners -->
+            <div class="card mt-4 border-dashed bg-light text-center p-3" style="border: 1px dashed var(--border-color); border-radius: var(--border-radius);">
+                <span class="badge bg-warning text-dark d-inline-block mb-2">Viva / Testing Helper</span>
+                <p class="small text-muted mb-1">Default Admin Login Credentials:</p>
+                <code>Email: admin@trek.com / Password: admin123</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap form client-side validation logic
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

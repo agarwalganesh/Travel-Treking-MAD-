@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}View Bookings - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="mb-4">
+        <h2 class="fw-bold"><i class="bi bi-journal-check text-primary me-2"></i>Global Bookings Logs</h2>
+        <p class="text-muted">Review, filter, and track registration status logs for all trekking expeditions.</p>
+    </div>
+
+    <!-- Booking Summary Badges -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="card p-3 border-0 bg-primary bg-opacity-10 text-primary" style="border-radius: var(--border-radius);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h4 class="fw-bold mb-0">{{ counts.booked }}</h4>
+                        <span class="small fw-semibold text-uppercase">Active Bookings</span>
+                    </div>
+                    <i class="bi bi-calendar-check fs-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card p-3 border-0 bg-danger bg-opacity-10 text-danger" style="border-radius: var(--border-radius);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h4 class="fw-bold mb-0">{{ counts.cancelled }}</h4>
+                        <span class="small fw-semibold text-uppercase">Cancelled</span>
+                    </div>
+                    <i class="bi bi-calendar-x fs-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card p-3 border-0 bg-success bg-opacity-10 text-success" style="border-radius: var(--border-radius);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h4 class="fw-bold mb-0">{{ counts.completed }}</h4>
+                        <span class="small fw-semibold text-uppercase">Completed</span>
+                    </div>
+                    <i class="bi bi-calendar-event fs-2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="card card-premium p-4 mb-4">
+        <form method="GET" action="{{ url_for('view_bookings') }}" class="row g-3">
+            <div class="col-md-5">
+                <label for="search" class="form-label small fw-semibold">Search by Trekker or Trek Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="e.g. Alice or Himalayan" value="{{ search_query }}">
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="status" class="form-label small fw-semibold">Booking Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Bookings</option>
+                    <option value="Booked" {% if filter_status == 'Booked' %}selected{% endif %}>Booked</option>
+                    <option value="Cancelled" {% if filter_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    <option value="Completed" {% if filter_status == 'Completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel-fill me-1"></i>Filter
+                </button>
+                <a href="{{ url_for('view_bookings') }}" class="btn btn-outline-secondary w-100">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="card card-premium">
+        <div class="table-responsive">
+            <table class="table table-hover table-premium mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Booking ID</th>
+                        <th>Trekker Detail</th>
+                        <th>Trek Details</th>
+                        <th>Expedition Dates</th>
+                        <th>Booking Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                        <tr>
+                            <td><code>#{{ booking.id }}</code></td>
+                            <td>
+                                <strong>{{ booking.user.full_name }}</strong>
+                                <div class="text-muted small">{{ booking.user.email }}</div>
+                            </td>
+                            <td>
+                                <strong>{{ booking.trek.trek_name }}</strong>
+                                <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ booking.trek.location }}</div>
+                            </td>
+                            <td>
+                                <span class="small text-dark">{{ booking.trek.start_date.strftime('%d %b %Y') }} - {{ booking.trek.end_date.strftime('%d %b %Y') }}</span>
+                            </td>
+                            <td>
+                                <span class="small text-muted">{{ booking.booking_date.strftime('%d %b %Y %H:%M') }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-status badge-status-{{ booking.status | lower }}">
+                                    {{ booking.status }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {% if booking.status == 'Booked' %}
+                                    <form action="{{ url_for('admin_cancel_booking', booking_id=booking.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking? This will restore 1 slot to the trek.');" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-x-circle me-1"></i>Cancel
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-muted small">No actions</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                <span>No bookings found matching your search.</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold"><i class="bi bi-speedometer2 text-primary me-2"></i>Admin Dashboard</h2>
+            <p class="text-muted">Overview of system operations, registrations, and booking activity.</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="stat-card stat-card-blue">
+                <div class="stat-value">{{ stats.total_treks }}</div>
+                <div class="stat-label">Total Treks</div>
+                <i class="bi bi-compass stat-icon"></i>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-green">
+                <div class="stat-value">{{ stats.total_bookings }}</div>
+                <div class="stat-label">Total Bookings</div>
+                <i class="bi bi-journal-check stat-icon"></i>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-purple">
+                <div class="stat-value">{{ stats.total_users }}</div>
+                <div class="stat-label">Registered Trekkers</div>
+                <i class="bi bi-people stat-icon"></i>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-orange">
+                <div class="stat-value">{{ stats.total_staff }}</div>
+                <div class="stat-label">Trek Staff</div>
+                <i class="bi bi-person-badge stat-icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card card-premium h-100">
+                <div class="card-premium-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Popular Treks (Booking Counts)</h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-4">
+                    {% if chart_data.popular_treks %}
+                        <div style="position: relative; height:300px; width:100%">
+                            <canvas id="popularTreksChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted my-5">
+                            <i class="bi bi-graph-up fs-2 d-block mb-2"></i>
+                            <span>No bookings found to generate popular treks chart.</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-premium h-100">
+                <div class="card-premium-header bg-dark">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Trek Distribution by Difficulty</h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-4">
+                    {% if chart_data.trek_difficulty %}
+                        <div style="position: relative; height:300px; width:100%">
+                            <canvas id="difficultyChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted my-5">
+                            <i class="bi bi-pie-chart fs-2 d-block mb-2"></i>
+                            <span>No treks found to generate difficulty chart.</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links & Actions -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card card-premium p-4 text-center">
+                <i class="bi bi-plus-circle text-primary mb-3" style="font-size: 2.5rem;"></i>
+                <h5 class="fw-bold">Create New Trek</h5>
+                <p class="text-muted small">Add a brand new trekking trail with itinerary, capacity, and leader assignments.</p>
+                <a href="{{ url_for('create_trek') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-lg me-1"></i>Create Trek
+                </a>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card card-premium p-4 text-center">
+                <i class="bi bi-person-check text-success mb-3" style="font-size: 2.5rem;"></i>
+                <h5 class="fw-bold">Pending Staff Requests</h5>
+                <p class="text-muted small">Review and approve applications from registered trekking staff guides.</p>
+                <a href="{{ url_for('manage_staff') }}" class="btn btn-success mt-2">
+                    <i class="bi bi-shield-check me-1"></i>Review Staff ({{ stats.pending_staff }})
+                </a>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card card-premium p-4 text-center">
+                <i class="bi bi-slash-circle text-danger mb-3" style="font-size: 2.5rem;"></i>
+                <h5 class="fw-bold">User Management</h5>
+                <p class="text-muted small">Manage trekker accounts, view search tables, or blacklist users for safety code violations.</p>
+                <a href="{{ url_for('manage_users') }}" class="btn btn-outline-danger mt-2">
+                    <i class="bi bi-person-slash me-1"></i>Manage Users
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Popular Treks Chart
+    {% if chart_data.popular_treks %}
+    const ptCtx = document.getElementById('popularTreksChart').getContext('2d');
+    new Chart(ptCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_data.popular_treks.labels | tojson }},
+            datasets: [{
+                label: 'Bookings Count',
+                data: {{ chart_data.popular_treks['values'] | tojson }},
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                borderColor: 'rgba(79, 70, 229, 1)',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Trek Difficulty Distribution Chart
+    {% if chart_data.trek_difficulty %}
+    const diffCtx = document.getElementById('difficultyChart').getContext('2d');
+    new Chart(diffCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_data.trek_difficulty.labels | tojson }},
+            datasets: [{
+                data: {{ chart_data.trek_difficulty['values'] | tojson }},
+                backgroundColor: [
+                    'rgba(16, 185, 129, 0.7)', // Easy - Green
+                    'rgba(245, 158, 11, 0.7)', // Moderate - Amber
+                    'rgba(239, 68, 68, 0.7)'   // Hard - Red
+                ],
+                borderColor: [
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(239, 68, 68, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

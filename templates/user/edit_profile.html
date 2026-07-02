@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center py-4">
+        <div class="col-md-6 col-lg-5">
+            <div class="card card-premium">
+                <div class="card-premium-header text-center">
+                    <h3 class="mb-1"><i class="bi bi-person-gear me-2"></i>Edit Profile</h3>
+                    <p class="mb-0 small text-white-50">Update your account information</p>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('edit_profile') }}" method="POST" class="needs-validation" novalidate>
+                        
+                        <!-- Full Name Input -->
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name }}" required placeholder="John Doe">
+                                <div class="invalid-feedback">Please enter your full name.</div>
+                            </div>
+                        </div>
+
+                        <!-- Email Input -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required placeholder="john@example.com">
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
+                            </div>
+                            <span class="form-text small text-muted">Used for login and notifications.</span>
+                        </div>
+
+                        <!-- Phone Number Input -->
+                        <div class="mb-4">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone }}" required placeholder="9876543210" pattern="^[0-9]{10,15}$">
+                                <div class="invalid-feedback">Please enter a valid 10-15 digit phone number.</div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save-fill me-2"></i>Save Changes
+                            </button>
+                            <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                        
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap form validation logic
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

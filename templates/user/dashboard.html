@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore Treks - TrekQuest{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold"><i class="bi bi-compass text-primary me-2"></i>Explore Trek Expeditions</h2>
+            <p class="text-muted mb-0">Discover scenic hiking trails, check slot availability, and reserve your spot.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="{{ url_for('my_bookings') }}" class="btn btn-outline-primary">
+                <i class="bi bi-journal-bookmark-fill me-1"></i>My Bookings & History
+            </a>
+        </div>
+    </div>
+
+    <!-- Search & Filters Panel -->
+    <div class="card card-premium p-4 mb-4">
+        <form method="GET" action="{{ url_for('user_dashboard') }}" class="row g-3">
+            <!-- Search Query -->
+            <div class="col-md-5">
+                <label for="search" class="form-label small fw-semibold">Search by Trek Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="e.g. Valley or Ghats" value="{{ search_query }}">
+                </div>
+            </div>
+
+            <!-- Difficulty Filter -->
+            <div class="col-md-2">
+                <label for="difficulty" class="form-label small fw-semibold">Difficulty</label>
+                <select class="form-select" id="difficulty" name="difficulty">
+                    <option value="">All Levels</option>
+                    <option value="Easy" {% if filter_difficulty == 'Easy' %}selected{% endif %}>Easy</option>
+                    <option value="Moderate" {% if filter_difficulty == 'Moderate' %}selected{% endif %}>Moderate</option>
+                    <option value="Hard" {% if filter_difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+                </select>
+            </div>
+
+            <!-- Location Filter -->
+            <div class="col-md-2">
+                <label for="location" class="form-label small fw-semibold">Location</label>
+                <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Nepal" value="{{ filter_location }}">
+            </div>
+
+            <!-- Search Buttons -->
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+                <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline-secondary w-100">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Treks Grid List -->
+    <div class="row g-4">
+        {% for trek in treks %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-premium h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- Header with Difficulty Badge -->
+                        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+                            <span class="badge badge-diff badge-diff-{{ trek.difficulty | lower }}">
+                                {{ trek.difficulty }}
+                            </span>
+                            <span class="small text-muted"><i class="bi bi-calendar-event me-1"></i>{{ trek.duration_days }} Days</span>
+                        </div>
+                        
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-2">{{ trek.trek_name }}</h5>
+                            <p class="text-primary small mb-3"><i class="bi bi-geo-alt-fill me-1"></i>{{ trek.location }}</p>
+                            
+                            <p class="card-text text-muted small text-truncate-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; height: 4.5em;">
+                                {{ trek.description or "No description provided." }}
+                            </p>
+                            
+                            <div class="d-flex justify-content-between border-top pt-3 mt-3">
+                                <div>
+                                    <span class="small text-muted d-block">Start Date</span>
+                                    <span class="fw-semibold small">{{ trek.start_date.strftime('%d %b %Y') }}</span>
+                                </div>
+                                <div>
+                                    <span class="small text-muted d-block text-end">Available Slots</span>
+                                    <span class="fw-bold text-end d-block {% if trek.available_slots == 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ trek.available_slots }} slots
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-white border-top p-3">
+                        <a href="{{ url_for('trek_details', trek_id=trek.id) }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-info-circle me-1"></i>View Details & Book
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center text-muted py-5">
+                <i class="bi bi-search fs-1 d-block mb-3"></i>
+                <h5 class="fw-semibold">No treks available right now.</h5>
+                <p class="small">Check back later or adjust your search parameters.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
