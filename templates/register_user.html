@@ -13,7 +13,8 @@
                 </div>
                 <div class="card-body p-4">
                     <form action="{{ url_for('register_user') }}" method="POST" class="needs-validation" novalidate id="registerForm">
-                        
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                         <!-- Full Name Input -->
                         <div class="mb-3">
                             <label for="full_name" class="form-label">Full Name</label>

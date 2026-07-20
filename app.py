@@ -1,9 +1,13 @@
 
 import os
+import secrets
 from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from config import Config
 from models import db, User, StaffProfile, Trek, Booking
@@ -21,10 +25,62 @@ login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 login_manager.init_app(app)
 
+# CSRF protection: makes every POST form require a valid token, which blocks
+# Cross-Site Request Forgery attacks (Fix #3).
+csrf = CSRFProtect(app)
+
+# Rate limiter: caps how often sensitive endpoints can be hit from one IP,
+# which slows down password brute-forcing and account enumeration (Fix #4, #9).
+limiter = Limiter(
+    key_func=get_remote_address,   # identify callers by their IP address
+    app=app,
+    default_limits=[]              # no global cap; limits are set per-route below
+)
+
+
+# ==========================================
+# SECURITY HELPERS
+# ==========================================
+
+def is_password_strong(password):
+    """
+    Enforce a basic password policy (Fix #6).
+    Returns (True, "") when the password is acceptable, otherwise
+    (False, "reason") describing the first rule that failed.
+    """
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    if not any(char.isalpha() for char in password):
+        return False, "Password must contain at least one letter."
+    if not any(char.isdigit() for char in password):
+        return False, "Password must contain at least one number."
+    return True, ""
+
+
+def resolve_assigned_staff_id(raw_value, approved_staff):
+    """
+    Safely turn the submitted 'assigned_staff_id' into a valid id (Fix #7).
+
+    - An empty value means 'no guide assigned' and returns None.
+    - A non-numeric value, or an id that is not an approved staff member,
+      raises ValueError instead of crashing with an unhandled 500 error.
+    """
+    if not raw_value:
+        return None
+    try:
+        staff_id = int(raw_value)
+    except (TypeError, ValueError):
+        raise ValueError("Invalid staff selection.")
+    approved_ids = {staff.id for staff in approved_staff}
+    if staff_id not in approved_ids:
+        raise ValueError("Selected guide is not an approved staff member.")
+    return staff_id
+
+
 @login_manager.user_loader
 def load_user(user_id):
     """
-    Load user from DB. If user is blacklisted, we return None (or handle it 
+    Load user from DB. If user is blacklisted, we return None (or handle it
     safely) to block active sessions.
     """
     user = User.query.get(int(user_id))
@@ -44,6 +100,7 @@ def index():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", methods=['POST'])   # brute-force protection (Fix #4)
 def login():
     """Unified login handler for all roles."""
     if current_user.is_authenticated:
@@ -94,6 +151,7 @@ def login():
 
 
 @app.route('/register/user', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=['POST'])   # slow down enumeration/abuse (Fix #9)
 def register_user():
     """Trekker registration route."""
     if current_user.is_authenticated:
@@ -105,9 +163,16 @@ def register_user():
         phone = request.form.get('phone', '').strip()
         password = request.form.get('password', '')
 
-        # Duplicate check
+        # Enforce the password policy (Fix #6)
+        strong, reason = is_password_strong(password)
+        if not strong:
+            flash(reason, "danger")
+            return redirect(url_for('register_user'))
+
+        # Duplicate check. The message is intentionally generic so it does not
+        # confirm to a stranger whether an email is registered (Fix #9).
         if User.query.filter_by(email=email).first():
-            flash("Email address is already registered. Please login.", "danger")
+            flash("Registration could not be completed. If you already have an account, please sign in.", "warning")
             return redirect(url_for('register_user'))
 
         # Create new Trekker user
@@ -128,6 +193,7 @@ def register_user():
 
 
 @app.route('/register/staff', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=['POST'])   # slow down enumeration/abuse (Fix #9)
 def register_staff():
     """Staff guide registration route."""
     if current_user.is_authenticated:
@@ -140,9 +206,16 @@ def register_staff():
         contact_details = request.form.get('contact_details', '').strip()
         password = request.form.get('password', '')
 
-        # Duplicate check
+        # Enforce the password policy (Fix #6)
+        strong, reason = is_password_strong(password)
+        if not strong:
+            flash(reason, "danger")
+            return redirect(url_for('register_staff'))
+
+        # Duplicate check with a generic message to avoid leaking which emails
+        # are registered (Fix #9).
         if User.query.filter_by(email=email).first():
-            flash("Email address is already registered.", "danger")
+            flash("Registration could not be completed. If you already have an account, please sign in.", "warning")
             return redirect(url_for('register_staff'))
 
         # Create User entry
@@ -169,6 +242,7 @@ def register_staff():
         return redirect(url_for('login'))
 
     return render_template('register_staff.html')
+
 
 
 @app.route('/logout')
@@ -319,17 +393,17 @@ def create_trek():
 
             if end_date < start_date:
                 raise ValueError("End date cannot be earlier than start date.")
+
+            # Validate the guide assignment here too, so a bad value shows a
+            # friendly error instead of crashing with a 500 (Fix #7).
+            assigned_staff_id = resolve_assigned_staff_id(
+                request.form.get('assigned_staff_id'), approved_staff
+            )
         except ValueError as e:
             flash(f"Invalid input: {str(e)}", "danger")
             return render_template('admin/trek_form.html', approved_staff=approved_staff, trek=None)
 
         status = request.form.get('status', 'Pending')
-        
-        assigned_staff_id = request.form.get('assigned_staff_id')
-        if assigned_staff_id == "":
-            assigned_staff_id = None
-        else:
-            assigned_staff_id = int(assigned_staff_id)
 
         # Create Trek
         new_trek = Trek(
@@ -406,7 +480,12 @@ def edit_trek(trek_id):
 
             if end_date < start_date:
                 raise ValueError("End date cannot be earlier than start date.")
-            
+
+            # Validate the guide assignment inside the try as well (Fix #7)
+            new_assigned_staff_id = resolve_assigned_staff_id(
+                request.form.get('assigned_staff_id'), approved_staff
+            )
+
             trek.duration_days = duration_days
             trek.available_slots = available_slots
             trek.start_date = start_date
@@ -416,12 +495,7 @@ def edit_trek(trek_id):
             return render_template('admin/trek_form.html', approved_staff=approved_staff, trek=trek)
 
         trek.status = request.form.get('status')
-        
-        assigned_staff_id = request.form.get('assigned_staff_id')
-        if assigned_staff_id == "":
-            trek.assigned_staff_id = None
-        else:
-            trek.assigned_staff_id = int(assigned_staff_id)
+        trek.assigned_staff_id = new_assigned_staff_id
 
         db.session.commit()
 
@@ -802,38 +876,36 @@ def book_trek(trek_id):
         flash("Booking Failed: Registrations are not open for this trek.", "danger")
         return redirect(url_for('trek_details', trek_id=trek.id))
 
-    # Overbooking prevention check
-    if trek.available_slots <= 0:
+    # Stop early if the trekker already holds an active booking for this trek.
+    existing = Booking.query.filter_by(user_id=current_user.id, trek_id=trek.id).first()
+    if existing and existing.status == 'Booked':
+        flash("You have already booked this trek expedition.", "info")
+        return redirect(url_for('trek_details', trek_id=trek.id))
+
+    # Claim a seat atomically (Fix #5): this single UPDATE decrements the slot
+    # count only if seats still remain. The database applies it as one locked
+    # step, so two people booking the last seat at the same time can never both
+    # succeed -- no overbooking, and slots can never go negative.
+    seat_claimed = Trek.query.filter(
+        Trek.id == trek.id,
+        Trek.available_slots > 0
+    ).update({Trek.available_slots: Trek.available_slots - 1}, synchronize_session=False)
+
+    if not seat_claimed:
+        db.session.rollback()
         flash("Booking Failed: No seats remaining! This expedition is fully booked.", "danger")
         return redirect(url_for('trek_details', trek_id=trek.id))
 
-    # Prevent double booking active records
-    existing = Booking.query.filter_by(user_id=current_user.id, trek_id=trek.id).first()
-    if existing:
-        if existing.status == 'Booked':
-            flash("You have already booked this trek expedition.", "info")
-            return redirect(url_for('trek_details', trek_id=trek.id))
-        elif existing.status == 'Cancelled':
-            # Reactivate cancelled booking
-            existing.status = 'Booked'
-            trek.available_slots -= 1
-            db.session.commit()
-            flash("Trek booking re-registered successfully!", "success")
-            return redirect(url_for('my_bookings'))
+    # A seat is now reserved for us; record it by reactivating the cancelled
+    # booking or creating a new one, then commit everything together.
+    if existing and existing.status == 'Cancelled':
+        existing.status = 'Booked'
+        flash("Trek booking re-registered successfully!", "success")
+    else:
+        db.session.add(Booking(user_id=current_user.id, trek_id=trek.id, status='Booked'))
+        flash(f"Booking successful! Your slot on {trek.trek_name} is reserved.", "success")
 
-    # Create new Booking
-    new_booking = Booking(
-        user_id=current_user.id,
-        trek_id=trek.id,
-        status='Booked'
-    )
-    # Decrement available slots
-    trek.available_slots -= 1
-
-    db.session.add(new_booking)
     db.session.commit()
-
-    flash(f"Booking successful! Your slot on {trek.trek_name} is reserved.", "success")
     return redirect(url_for('my_bookings'))
 
 
@@ -918,7 +990,131 @@ def edit_profile():
 
 @app.errorhandler(404)
 def page_not_found(e):
+    # Check if request path is an API endpoint
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Resource not found'}), 404
     return render_template('index.html'), 404
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    """Show a friendly message instead of a raw 400 page when a CSRF token
+    is missing or expired (Fix #3)."""
+    flash("Your session expired or the form was invalid. Please try again.", "danger")
+    return redirect(request.referrer or url_for('index'))
+
+
+@app.errorhandler(429)
+def handle_rate_limit(e):
+    """Friendly message when a client hits a rate limit (Fix #4, #9)."""
+    flash("Too many attempts. Please wait a minute and try again.", "danger")
+    return redirect(request.referrer or url_for('login'))
+
+
+# ==========================================
+# REST API ENDPOINTS (RECOMMENDED)
+# ==========================================
+
+@app.route('/api/treks', methods=['GET'])
+def api_get_treks():
+    """
+    Returns a list of open treks in JSON format.
+    If logged in as admin, returns all treks.
+    """
+    is_admin = current_user.is_authenticated and current_user.role == 'admin'
+    
+    if is_admin:
+        treks = Trek.query.all()
+    else:
+        treks = Trek.query.filter_by(status='Open').all()
+
+    output = []
+    for trek in treks:
+        output.append({
+            'id': trek.id,
+            'trek_name': trek.trek_name,
+            'location': trek.location,
+            'difficulty': trek.difficulty,
+            'duration_days': trek.duration_days,
+            'available_slots': trek.available_slots,
+            'status': trek.status,
+            'start_date': trek.start_date.isoformat() if trek.start_date else None,
+            'end_date': trek.end_date.isoformat() if trek.end_date else None
+        })
+    return jsonify(output), 200
+
+
+@app.route('/api/treks/<int:trek_id>', methods=['GET'])
+def api_get_trek(trek_id):
+    """
+    Returns detailed information about a single trek.
+    """
+    trek = Trek.query.get_or_404(trek_id)
+    
+    # Hide details of pending/closed/completed treks from non-admin users
+    is_admin = current_user.is_authenticated and current_user.role == 'admin'
+    if trek.status != 'Open' and not is_admin:
+        return jsonify({'error': 'Unauthorized access or trek is not open.'}), 403
+
+    return jsonify({
+        'id': trek.id,
+        'trek_name': trek.trek_name,
+        'location': trek.location,
+        'difficulty': trek.difficulty,
+        'duration_days': trek.duration_days,
+        'description': trek.description,
+        'available_slots': trek.available_slots,
+        'status': trek.status,
+        'start_date': trek.start_date.isoformat() if trek.start_date else None,
+        'end_date': trek.end_date.isoformat() if trek.end_date else None,
+        'assigned_staff_id': trek.assigned_staff_id
+    }), 200
+
+
+@app.route('/api/bookings', methods=['GET'])
+@login_required
+def api_get_bookings():
+    """
+    Returns all booking records. Admin only.
+    """
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin privilege required.'}), 403
+
+    bookings = Booking.query.order_by(Booking.booking_date.desc()).all()
+    output = []
+    for booking in bookings:
+        output.append({
+            'id': booking.id,
+            'user_id': booking.user_id,
+            'trek_id': booking.trek_id,
+            'booking_date': booking.booking_date.isoformat(),
+            'status': booking.status
+        })
+    return jsonify(output), 200
+
+
+@app.route('/api/users', methods=['GET'])
+@login_required
+def api_get_users():
+    """
+    Returns all users. Admin only.
+    """
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin privilege required.'}), 403
+
+    users = User.query.all()
+    output = []
+    for user in users:
+        output.append({
+            'id': user.id,
+            'full_name': user.full_name,
+            'email': user.email,
+            'phone': user.phone,
+            'role': user.role,
+            'is_blacklisted': user.is_blacklisted,
+            'created_at': user.created_at.isoformat()
+        })
+    return jsonify(output), 200
 
 
 # Launch Script
@@ -926,19 +1122,44 @@ if __name__ == '__main__':
     # Programmatically create database tables before running
     with app.app_context():
         db.create_all()
-        # Seed admin automatically if it doesn't exist
-        admin_email = "admin@trek.com"
+
+        # Seed the default admin only if it does not exist yet.
+        # The password comes from the ADMIN_PASSWORD environment variable; if
+        # that is not set, a strong random one is generated and printed once, so
+        # we never ship a weak, well-known default like "admin123" (Fix #4).
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@trek.com')
         admin = User.query.filter_by(email=admin_email).first()
         if not admin:
+            admin_password = os.environ.get('ADMIN_PASSWORD')
+            generated = admin_password is None
+            if generated:
+                admin_password = secrets.token_urlsafe(12)
+
             admin_user = User(
                 full_name="System Administrator",
                 email=admin_email,
                 phone="9876543210",
-                password_hash=generate_password_hash("admin123"),
+                password_hash=generate_password_hash(admin_password),
                 role="admin"
             )
             db.session.add(admin_user)
             db.session.commit()
-            print("Automatic DB Initialization: default admin (admin@trek.com/admin123) created.")
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+            print("=" * 62)
+            print("  Default admin account created")
+            print(f"  Email:    {admin_email}")
+            if generated:
+                print(f"  Password: {admin_password}")
+                print("  (Save this now. Set ADMIN_PASSWORD to choose your own.)")
+            else:
+                print("  Password: (from the ADMIN_PASSWORD environment variable)")
+            print("=" * 62)
+
+    # Security-friendly run defaults (Fix #2):
+    #   - debug is OFF unless FLASK_DEBUG=1, so the interactive debugger (which
+    #     can run arbitrary code) is never exposed by accident.
+    #   - host is 127.0.0.1 (localhost only) unless FLASK_HOST is set, so the
+    #     app is not reachable from other machines on the network by default.
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ('1', 'true', 'yes')
+    host = os.environ.get('FLASK_HOST', '127.0.0.1')
+    app.run(debug=debug_mode, host=host, port=5000)

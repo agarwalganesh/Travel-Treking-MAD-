@@ -119,6 +119,7 @@
                             <td class="text-end">
                                 {% if booking.status == 'Booked' %}
                                     <form action="{{ url_for('admin_cancel_booking', booking_id=booking.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking? This will restore 1 slot to the trek.');" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-outline-danger btn-sm">
                                             <i class="bi bi-x-circle me-1"></i>Cancel
                                         </button>

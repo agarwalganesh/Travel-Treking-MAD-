@@ -16,7 +16,8 @@
                 </div>
                 <div class="card-body p-4">
                     <form action="{% if trek %}{{ url_for('edit_trek', trek_id=trek.id) }}{% else %}{{ url_for('create_trek') }}{% endif %}" method="POST" class="needs-validation" novalidate id="trekForm">
-                        
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                         <!-- Trek Name & Location -->
                         <div class="row mb-3">
                             <div class="col-md-6">

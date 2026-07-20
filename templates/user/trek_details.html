@@ -82,6 +82,7 @@
                     
                     {% if user_booking.status == 'Booked' and trek.status == 'Open' %}
                         <form action="{{ url_for('cancel_booking', booking_id=user_booking.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-lg w-100 mb-2">
                                 <i class="bi bi-x-circle me-1"></i>Cancel Booking
                             </button>
@@ -98,6 +99,7 @@
                     {% if trek.status == 'Open' %}
                         {% if trek.available_slots > 0 %}
                             <form action="{{ url_for('book_trek', trek_id=trek.id) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
                                     <i class="bi bi-cart-plus me-1"></i>Book Trek Now
                                 </button>

@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Flask secret key — generated locally, must NEVER be committed (Fix #1)
+.secret_key
+
+# SQLite database file
+database/*.db
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store

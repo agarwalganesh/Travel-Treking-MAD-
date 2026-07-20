@@ -26,6 +26,9 @@ class User(db.Model, UserMixin):
     # One User (with staff role) can have one StaffProfile
     staff_profile = db.relationship('StaffProfile', backref='user_profile', uselist=False, cascade='all, delete-orphan')
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<User {self.email} ({self.role})>"
 
@@ -41,8 +44,12 @@ class StaffProfile(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
     contact_details = db.Column(db.Text, nullable=True)
     approval_status = db.Column(db.String(20), default='Pending', nullable=False) # Pending, Approved, Rejected
+    specializations = db.Column(db.String(255), nullable=True) # Comma-separated list of certs/specializations
     assigned_trek_count = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return f"<StaffProfile for User ID {self.user_id} Status: {self.approval_status}>"
@@ -75,8 +82,12 @@ class Trek(db.Model):
     # A Trek points back to the User who is the assigned staff member
     assigned_staff = db.relationship('User', backref='assigned_treks', foreign_keys=[assigned_staff_id])
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Trek {self.trek_name} ({self.location})>"
+
 
 
 class Booking(db.Model):
@@ -91,5 +102,32 @@ class Booking(db.Model):
     booking_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     status = db.Column(db.String(20), default='Booked', nullable=False) # Booked, Cancelled, Completed
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Booking User ID {self.user_id} -> Trek ID {self.trek_id} ({self.status})>"
+
+
+class Review(db.Model):
+    """
+    Review model representing a Trekker's rating and feedback for a trek.
+    """
+    __tablename__ = 'review'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    trek_id = db.Column(db.Integer, db.ForeignKey('trek.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False) # 1 to 5 stars
+    comment = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    user = db.relationship('User', backref='reviews')
+    trek = db.relationship('Trek', backref='reviews')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def __repr__(self):
+        return f"<Review User ID {self.user_id} -> Trek ID {self.trek_id} ({self.rating} stars)>"

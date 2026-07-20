@@ -67,11 +67,13 @@
                             <td class="text-end">
                                 <div class="btn-group">
                                     <form action="{{ url_for('approve_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-success btn-sm me-1">
                                             <i class="bi bi-check-lg me-1"></i>Approve
                                         </button>
                                     </form>
                                     <form action="{{ url_for('reject_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bi bi-x-lg me-1"></i>Reject
                                         </button>
@@ -147,6 +149,7 @@
                                 <div class="d-flex justify-content-end gap-1">
                                     {% if staff_user.staff_profile and staff_user.staff_profile.approval_status != 'Approved' %}
                                         <form action="{{ url_for('approve_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-success btn-sm">
                                                 Approve
                                             </button>
@@ -155,6 +158,7 @@
                                     
                                     {% if staff_user.staff_profile and staff_user.staff_profile.approval_status != 'Rejected' and staff_user.staff_profile.approval_status != 'Approved' %}
                                         <form action="{{ url_for('reject_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-warning btn-sm">
                                                 Reject
                                             </button>
@@ -163,12 +167,14 @@
 
                                     {% if staff_user.is_blacklisted %}
                                         <form action="{{ url_for('toggle_blacklist_user', user_id=staff_user.id) }}" method="POST" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-success btn-sm">
                                                 <i class="bi bi-unlock"></i> Unblacklist
                                             </button>
                                         </form>
                                     {% else %}
                                         <form action="{{ url_for('toggle_blacklist_user', user_id=staff_user.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to blacklist this staff member? They will lose access immediately.');" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-danger btn-sm">
                                                 <i class="bi bi-slash-circle"></i> Blacklist
                                             </button>

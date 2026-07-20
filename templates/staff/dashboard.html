@@ -53,6 +53,7 @@
                             <td>
                                 <!-- Inline Slot Update Form -->
                                 <form action="{{ url_for('staff_update_slots', trek_id=trek.id) }}" method="POST" class="d-flex align-items-center gap-1" style="max-width: 150px;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="number" class="form-control form-control-sm px-2 text-center" name="slots" value="{{ trek.available_slots }}" min="0" required>
                                     <button type="submit" class="btn btn-outline-success btn-sm py-1 px-2" title="Update Slots">
                                         <i class="bi bi-arrow-repeat"></i>
@@ -71,6 +72,7 @@
                                     <!-- Change Status Controls -->
                                     {% if trek.status == 'Approved' or trek.status == 'Closed' %}
                                         <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='open') }}" method="POST" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-success btn-sm">
                                                 Open
                                             </button>
@@ -79,11 +81,13 @@
                                     
                                     {% if trek.status == 'Open' %}
                                         <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='close') }}" method="POST" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-warning btn-sm">
                                                 Close
                                             </button>
                                         </form>
                                         <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='start') }}" method="POST" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-primary btn-sm">
                                                 Start
                                             </button>
@@ -92,6 +96,7 @@
 
                                     {% if trek.status == 'Started' or trek.status == 'Open' or trek.status == 'Closed' %}
                                         <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='complete') }}" method="POST" onsubmit="return confirm('Are you sure you want to mark this trek as completed? All bookings will be completed.');" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-primary btn-sm">
                                                 Complete
                                             </button>
