@@ -1135,8 +1135,10 @@ def init_db():
         # On Vercel you MUST set ADMIN_PASSWORD (and SECRET_KEY) as environment
         # variables, otherwise the admin password changes on every cold start.
         admin_email = os.environ.get('ADMIN_EMAIL', 'admin@trek.com')
-        if not User.query.filter_by(email=admin_email).first():
-            admin_password = os.environ.get('ADMIN_PASSWORD')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+        admin = User.query.filter_by(email=admin_email).first()
+
+        if not admin:
             generated = admin_password is None
             if generated:
                 admin_password = secrets.token_urlsafe(12)
@@ -1159,6 +1161,13 @@ def init_db():
             else:
                 print("  Password: (from the ADMIN_PASSWORD environment variable)")
             print("=" * 62)
+        elif admin_password and not check_password_hash(admin.password_hash, admin_password):
+            # Keep the admin password in sync with the ADMIN_PASSWORD env var.
+            # On serverless, a stale /tmp database seeded before the env var was
+            # set would otherwise lock the admin out forever on that instance.
+            admin.password_hash = generate_password_hash(admin_password)
+            db.session.commit()
+            print(f"[init_db] Admin password re-synced from ADMIN_PASSWORD for {admin_email}")
 
 
 # Initialize the database as soon as this module is imported, so it works both
