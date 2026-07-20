@@ -1,0 +1,131 @@
+{% extends 'dash_base.html' %}
+
+{% block title %}Search - Trekking Management Application{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-3">Search</h4>
+
+<form method="GET" action="{{ url_for('admin_search') }}" class="row g-2 mb-4" style="max-width: 560px;">
+    <div class="col-9">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" name="q" placeholder="Search treks, users, staff, bookings..."
+                   value="{{ q }}" autofocus>
+        </div>
+    </div>
+    <div class="col-3 d-grid">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+{% if q %}
+    <!-- Treks results -->
+    <div class="wf-card mb-3">
+        <div class="wf-card-header"><span>Treks ({{ results.treks | length }})</span></div>
+        <div class="table-responsive">
+            <table class="table table-premium mb-0">
+                <thead><tr><th>ID</th><th>Trek Name</th><th>Location</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                    {% for trek in results.treks %}
+                    <tr>
+                        <td>{{ trek.id }}</td>
+                        <td class="fw-semibold">{{ trek.trek_name }}</td>
+                        <td>{{ trek.location }}</td>
+                        <td><span class="badge-status badge-status-{{ trek.status | lower }}">{{ trek.status }}</span></td>
+                        <td class="text-end">
+                            <a href="{{ url_for('edit_trek', trek_id=trek.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">No matching treks.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Trekkers results -->
+    <div class="wf-card mb-3">
+        <div class="wf-card-header"><span>Trekkers ({{ results.users | length }})</span></div>
+        <div class="table-responsive">
+            <table class="table table-premium mb-0">
+                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for user in results.users %}
+                    <tr>
+                        <td>U{{ '%03d' | format(user.id) }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.is_blacklisted %}
+                                <span class="badge-status badge-status-rejected">Blacklisted</span>
+                            {% else %}
+                                <span class="badge-status badge-status-open">Active</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">No matching trekkers.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Staff results -->
+    <div class="wf-card mb-3">
+        <div class="wf-card-header"><span>Staff ({{ results.staff | length }})</span></div>
+        <div class="table-responsive">
+            <table class="table table-premium mb-0">
+                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Approval</th></tr></thead>
+                <tbody>
+                    {% for staff in results.staff %}
+                    <tr>
+                        <td>S{{ '%03d' | format(staff.id) }}</td>
+                        <td>{{ staff.full_name }}</td>
+                        <td>{{ staff.email }}</td>
+                        <td>
+                            {% if staff.staff_profile %}
+                                <span class="badge-status badge-status-{{ staff.staff_profile.approval_status | lower }}">
+                                    {{ staff.staff_profile.approval_status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">No matching staff.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bookings results -->
+    <div class="wf-card">
+        <div class="wf-card-header"><span>Bookings ({{ results.bookings | length }})</span></div>
+        <div class="table-responsive">
+            <table class="table table-premium mb-0">
+                <thead><tr><th>ID</th><th>User</th><th>Trek</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for booking in results.bookings %}
+                    <tr>
+                        <td>B{{ '%03d' | format(booking.id) }}</td>
+                        <td>{{ booking.user.full_name }}</td>
+                        <td>{{ booking.trek.trek_name }}</td>
+                        <td>{{ booking.booking_date.strftime('%d %b %Y') }}</td>
+                        <td><span class="badge-status badge-status-{{ booking.status | lower }}">{{ booking.status }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">No matching bookings.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-search fs-1 d-block mb-2"></i>
+        Type a keyword above to search across treks, trekkers, staff, and bookings.
+    </div>
+{% endif %}
+{% endblock %}

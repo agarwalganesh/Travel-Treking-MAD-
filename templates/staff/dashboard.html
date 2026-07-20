@@ -1,129 +1,79 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}Staff Dashboard - TrekQuest{% endblock %}
+{% block title %}Staff Dashboard - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold text-success"><i class="bi bi-briefcase text-success me-2"></i>Staff Dashboard</h2>
-            <p class="text-muted">Manage your assigned trekking expeditions, adjust slots, and update statuses.</p>
+<h4 class="fw-bold mb-4">My Dashboard</h4>
+
+<!-- Stat cards (wireframe 7) -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="wf-stat">
+            <div>
+                <div class="wf-label">Assigned Treks</div>
+                <div class="wf-value">{{ stats.assigned_treks }}</div>
+            </div>
+            <i class="bi bi-signpost-split wf-icon"></i>
         </div>
     </div>
-
-    <!-- Assigned Treks List -->
-    <div class="card card-premium">
-        <div class="card-premium-header bg-success" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
-            <h5 class="mb-0"><i class="bi bi-compass me-2"></i>My Assigned Trek Expeditions</h5>
+    <div class="col-md-4">
+        <div class="wf-stat">
+            <div>
+                <div class="wf-label">Total Participants</div>
+                <div class="wf-value">{{ stats.total_participants }}</div>
+            </div>
+            <i class="bi bi-people wf-icon"></i>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th>Trek Name</th>
-                        <th>Location</th>
-                        <th>Dates & Duration</th>
-                        <th>Status</th>
-                        <th>Capacity / Slots</th>
-                        <th>Participant Count</th>
-                        <th class="text-center" style="width: 320px;">Management Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for trek in assigned_treks %}
-                        <tr>
-                            <td><code>#{{ trek.id }}</code></td>
-                            <td>
-                                <strong>{{ trek.trek_name }}</strong>
-                                <span class="badge badge-diff badge-diff-{{ trek.difficulty | lower }} ms-1">
-                                    {{ trek.difficulty }}
-                                </span>
-                            </td>
-                            <td><i class="bi bi-geo-alt text-muted me-1"></i>{{ trek.location }}</td>
-                            <td>
-                                <div class="small">{{ trek.start_date.strftime('%d %b %Y') }} - {{ trek.end_date.strftime('%d %b %Y') }}</div>
-                                <div class="text-muted small">{{ trek.duration_days }} Days</div>
-                            </td>
-                            <td>
-                                <span class="badge badge-status badge-status-{{ trek.status | lower }}">
-                                    {{ trek.status }}
-                                </span>
-                            </td>
-                            <td>
-                                <!-- Inline Slot Update Form -->
-                                <form action="{{ url_for('staff_update_slots', trek_id=trek.id) }}" method="POST" class="d-flex align-items-center gap-1" style="max-width: 150px;">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input type="number" class="form-control form-control-sm px-2 text-center" name="slots" value="{{ trek.available_slots }}" min="0" required>
-                                    <button type="submit" class="btn btn-outline-success btn-sm py-1 px-2" title="Update Slots">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                    </button>
-                                </form>
-                            </td>
-                            <td>
-                                <!-- Count Booked bookings -->
-                                {% set active_bookings = trek.bookings | selectattr('status', 'equalto', 'Booked') | list | length %}
-                                <a href="{{ url_for('staff_trek_participants', trek_id=trek.id) }}" class="btn btn-outline-secondary btn-sm position-relative">
-                                    <i class="bi bi-people me-1"></i> View ({{ active_bookings }})
-                                </a>
-                            </td>
-                            <td>
-                                <div class="d-flex flex-wrap justify-content-center gap-1">
-                                    <!-- Change Status Controls -->
-                                    {% if trek.status == 'Approved' or trek.status == 'Closed' %}
-                                        <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='open') }}" method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-success btn-sm">
-                                                Open
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                    
-                                    {% if trek.status == 'Open' %}
-                                        <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='close') }}" method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-warning btn-sm">
-                                                Close
-                                            </button>
-                                        </form>
-                                        <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='start') }}" method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-primary btn-sm">
-                                                Start
-                                            </button>
-                                        </form>
-                                    {% endif %}
-
-                                    {% if trek.status == 'Started' or trek.status == 'Open' or trek.status == 'Closed' %}
-                                        <form action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='complete') }}" method="POST" onsubmit="return confirm('Are you sure you want to mark this trek as completed? All bookings will be completed.');" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                Complete
-                                            </button>
-                                        </form>
-                                    {% endif %}
-
-                                    {% if trek.status == 'Completed' %}
-                                        <span class="text-success small"><i class="bi bi-check2-all"></i> Expedition Finished</span>
-                                    {% endif %}
-
-                                    {% if trek.status == 'Pending' %}
-                                        <span class="text-muted small"><i class="bi bi-hourglass"></i> Awaiting Admin Approval</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-5">
-                                <i class="bi bi-exclamation-circle fs-2 d-block mb-2"></i>
-                                <span>You are not assigned to any treks yet, or your pending assignments are awaiting admin approval.</span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    </div>
+    <div class="col-md-4">
+        <div class="wf-stat">
+            <div>
+                <div class="wf-label">Open Treks</div>
+                <div class="wf-value">{{ stats.open_treks }}</div>
+            </div>
+            <i class="bi bi-flag wf-icon"></i>
         </div>
+    </div>
+</div>
+
+<!-- My Assigned Treks table (wireframe 7) -->
+<div class="wf-card" id="my-treks">
+    <div class="wf-card-header"><span>My Assigned Treks</span></div>
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>Trek Name</th>
+                    <th>Location</th>
+                    <th>Participants</th>
+                    <th>Slots</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trek in assigned_treks %}
+                <tr>
+                    <td class="fw-semibold">{{ trek.trek_name }}</td>
+                    <td>{{ trek.location }}</td>
+                    <td>{{ participant_counts[trek.id] }}</td>
+                    <td>{{ trek.available_slots }}</td>
+                    <td><span class="badge-status badge-status-{{ trek.status | lower }}">{{ trek.status }}</span></td>
+                    <td class="text-end">
+                        <a href="{{ url_for('staff_trek_participants', trek_id=trek.id) }}" class="btn btn-primary btn-sm">
+                            Manage
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        No treks assigned to you yet. The admin will assign treks to approved guides.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

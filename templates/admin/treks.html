@@ -1,143 +1,100 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}Manage Treks - TrekQuest{% endblock %}
+{% block title %}Treks - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold"><i class="bi bi-compass text-primary me-2"></i>Manage Treks</h2>
-            <p class="text-muted">Create, edit, view, and assign staff members to treks.</p>
-        </div>
-        <a href="{{ url_for('create_trek') }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i>Create New Trek
-        </a>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0">Treks</h4>
+    <a href="{{ url_for('create_trek') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Add New Trek
+    </a>
+</div>
 
-    <!-- Search & Filter Card -->
-    <div class="card card-premium p-4 mb-4">
-        <form method="GET" action="{{ url_for('manage_treks') }}" class="row g-3">
-            <!-- Search Query -->
+<!-- Search & filter bar (wireframe 4) -->
+<div class="wf-card mb-3">
+    <div class="wf-card-body py-3">
+        <form method="GET" action="{{ url_for('manage_treks') }}" class="row g-2 align-items-center">
             <div class="col-md-4">
-                <label for="search" class="form-label small fw-semibold">Search by Name or ID</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" id="search" name="search" placeholder="e.g. Valley or 1" value="{{ search_query }}">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="search" placeholder="Search treks..."
+                           value="{{ search_query }}">
                 </div>
             </div>
-
-            <!-- Filter Difficulty -->
             <div class="col-md-2">
-                <label for="difficulty" class="form-label small fw-semibold">Difficulty</label>
-                <select class="form-select" id="difficulty" name="difficulty">
+                <select class="form-select form-select-sm" name="difficulty">
                     <option value="">All Difficulties</option>
                     <option value="Easy" {% if filter_difficulty == 'Easy' %}selected{% endif %}>Easy</option>
                     <option value="Moderate" {% if filter_difficulty == 'Moderate' %}selected{% endif %}>Moderate</option>
                     <option value="Hard" {% if filter_difficulty == 'Hard' %}selected{% endif %}>Hard</option>
                 </select>
             </div>
-
-            <!-- Filter Status -->
             <div class="col-md-2">
-                <label for="status" class="form-label small fw-semibold">Status</label>
-                <select class="form-select" id="status" name="status">
+                <select class="form-select form-select-sm" name="status">
                     <option value="">All Statuses</option>
-                    <option value="Pending" {% if filter_status == 'Pending' %}selected{% endif %}>Pending</option>
-                    <option value="Approved" {% if filter_status == 'Approved' %}selected{% endif %}>Approved</option>
-                    <option value="Open" {% if filter_status == 'Open' %}selected{% endif %}>Open</option>
-                    <option value="Closed" {% if filter_status == 'Closed' %}selected{% endif %}>Closed</option>
-                    <option value="Completed" {% if filter_status == 'Completed' %}selected{% endif %}>Completed</option>
+                    {% for st in ['Pending', 'Open', 'Closed', 'Started', 'Completed'] %}
+                    <option value="{{ st }}" {% if filter_status == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
                 </select>
             </div>
-
-            <!-- Filter Location -->
             <div class="col-md-2">
-                <label for="location" class="form-label small fw-semibold">Location</label>
-                <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Maharashtra" value="{{ filter_location }}">
+                <input type="text" class="form-control form-control-sm" name="location" placeholder="Location"
+                       value="{{ filter_location }}">
             </div>
-
-            <!-- Buttons -->
-            <div class="col-md-2 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-funnel-fill me-1"></i>Filter
-                </button>
-                <a href="{{ url_for('manage_treks') }}" class="btn btn-outline-secondary w-100">
-                    Reset
-                </a>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-outline-primary btn-sm">Apply</button>
             </div>
         </form>
     </div>
+</div>
 
-    <!-- Treks List Table -->
-    <div class="card card-premium">
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th>Trek Name</th>
-                        <th>Location</th>
-                        <th>Difficulty</th>
-                        <th>Duration</th>
-                        <th>Available Slots</th>
-                        <th>Status</th>
-                        <th>Assigned Staff</th>
-                        <th class="text-end" style="width: 200px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for trek in treks %}
-                        <tr>
-                            <td><code>#{{ trek.id }}</code></td>
-                            <td>
-                                <strong class="text-dark">{{ trek.trek_name }}</strong>
-                                <div class="text-muted small">Dates: {{ trek.start_date.strftime('%d %b %Y') }} - {{ trek.end_date.strftime('%d %b %Y') }}</div>
-                            </td>
-                            <td>{{ trek.location }}</td>
-                            <td>
-                                <span class="badge badge-diff badge-diff-{{ trek.difficulty | lower }}">
-                                    {{ trek.difficulty }}
-                                </span>
-                            </td>
-                            <td>{{ trek.duration_days }} Days</td>
-                            <td><strong>{{ trek.available_slots }}</strong> slots</td>
-                            <td>
-                                <span class="badge badge-status badge-status-{{ trek.status | lower }}">
-                                    {{ trek.status }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if trek.assigned_staff %}
-                                    <span class="text-dark"><i class="bi bi-person-badge text-muted me-1"></i>{{ trek.assigned_staff.full_name }}</span>
-                                {% else %}
-                                    <span class="text-danger small"><i class="bi bi-exclamation-circle me-1"></i>Unassigned</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <div class="btn-group">
-                                    <a href="{{ url_for('edit_trek', trek_id=trek.id) }}" class="btn btn-outline-primary btn-sm" title="Edit Trek">
-                                        <i class="bi bi-pencil-square"></i> Edit
-                                    </a>
-                                    <form action="{{ url_for('delete_trek', trek_id=trek.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this trek? This action cannot be undone.');" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Trek">
-                                            <i class="bi bi-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-5">
-                                <i class="bi bi-search fs-2 d-block mb-2"></i>
-                                <span>No treks found matching the criteria.</span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<!-- Treks table (wireframe 4) -->
+<div class="wf-card">
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Trek Name</th>
+                    <th>Location</th>
+                    <th>Difficulty</th>
+                    <th>Slots</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trek in treks %}
+                <tr>
+                    <td>{{ trek.id }}</td>
+                    <td class="fw-semibold">{{ trek.trek_name }}</td>
+                    <td>{{ trek.location }}</td>
+                    <td><span class="badge-diff badge-diff-{{ trek.difficulty | lower }}">{{ trek.difficulty }}</span></td>
+                    <td>{{ trek.available_slots }}</td>
+                    <td><span class="badge-status badge-status-{{ trek.status | lower }}">{{ trek.status }}</span></td>
+                    <td class="text-end">
+                        <a href="{{ url_for('edit_trek', trek_id=trek.id) }}" class="btn btn-sm btn-outline-secondary"
+                           title="Edit trek">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_trek', trek_id=trek.id) }}" class="d-inline"
+                              onsubmit="return confirm('Delete trek: {{ trek.trek_name }}? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete trek">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No treks found. <a href="{{ url_for('create_trek') }}">Create the first trek</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

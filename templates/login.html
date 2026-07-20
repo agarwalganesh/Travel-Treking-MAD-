@@ -1,84 +1,41 @@
 {% extends 'base.html' %}
 
-{% block title %}Sign In - TrekQuest{% endblock %}
+{% block title %}Sign In - Trekking Management Application{% endblock %}
 
 {% block content %}
 <div class="container">
-    <div class="row justify-content-center py-4">
-        <div class="col-md-6 col-lg-5">
-            <div class="card card-premium">
-                <div class="card-premium-header text-center">
-                    <h3 class="mb-1"><i class="bi bi-shield-lock me-2"></i>Sign In</h3>
-                    <p class="mb-0 small text-white-50">Access your TrekQuest account</p>
+    <div class="auth-wrap my-4">
+        <div class="auth-card">
+            <h3 class="text-center fw-bold mb-4">Login</h3>
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <input type="email" class="form-control" id="email" name="email"
+                           placeholder="Email" required autofocus>
                 </div>
-                <div class="card-body p-4">
-                    <form action="{{ url_for('login') }}" method="POST" class="needs-validation" novalidate>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                        <!-- Email Input -->
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email Address</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                <input type="email" class="form-control" id="email" name="email" required placeholder="name@example.com">
-                                <div class="invalid-feedback">Please enter a valid email address.</div>
-                            </div>
-                        </div>
-
-                        <!-- Password Input -->
-                        <div class="mb-4">
-                            <label for="password" class="form-label">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-key"></i></span>
-                                <input type="password" class="form-control" id="password" name="password" required placeholder="Enter password">
-                                <div class="invalid-feedback">Please enter your password.</div>
-                            </div>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>Login
-                            </button>
-                        </div>
-                        
-                    </form>
-
-                    <hr class="text-muted">
-
-                    <div class="text-center mt-3">
-                        <p class="mb-1 text-muted small">New to TrekQuest?</p>
-                        <div class="d-flex justify-content-center gap-3">
-                            <a href="{{ url_for('register_user') }}" class="small fw-semibold text-primary text-decoration-none">
-                                <i class="bi bi-person-plus me-1"></i>Register as Trekker
-                            </a>
-                            <span class="text-muted">|</span>
-                            <a href="{{ url_for('register_staff') }}" class="small fw-semibold text-success text-decoration-none">
-                                <i class="bi bi-people me-1"></i>Register as Staff
-                            </a>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <input type="password" class="form-control" id="password" name="password"
+                           placeholder="Password" required>
                 </div>
-            </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1">
+                    <label class="form-check-label small" for="remember">Remember me</label>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+
+                <p class="text-center small text-muted mb-0">
+                    Don't have an account?
+                    <a href="{{ url_for('register') }}" class="text-decoration-none fw-semibold">Register here</a>
+                </p>
+            </form>
         </div>
     </div>
 </div>
-
-<script>
-// Bootstrap form client-side validation logic
-(function () {
-  'use strict'
-  var forms = document.querySelectorAll('.needs-validation')
-  Array.prototype.slice.call(forms)
-    .forEach(function (form) {
-      form.addEventListener('submit', function (event) {
-        if (!form.checkValidity()) {
-          event.preventDefault()
-          event.stopPropagation()
-        }
-        form.classList.add('was-validated')
-      }, false)
-    })
-})()
-</script>
 {% endblock %}

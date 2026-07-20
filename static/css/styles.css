@@ -232,6 +232,26 @@ body {
     color: #3730a3;
 }
 
+.badge-status-booked {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #065f46;
+}
+
+.badge-status-cancelled {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #991b1b;
+}
+
+.badge-status-started {
+    background-color: rgba(14, 165, 233, 0.15);
+    color: #0369a1;
+}
+
+.badge-status-rejected {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #991b1b;
+}
+
 /* Form Styles */
 .form-control, .form-select {
     border-radius: 8px;
@@ -276,4 +296,227 @@ footer {
     padding: 1.5rem 0;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     font-size: 0.9rem;
+}
+
+/* ==========================================================
+   Dashboard shell (wireframe layout: topbar + left sidebar)
+   ========================================================== */
+
+.dash-body {
+    display: block;
+    background-color: var(--background-color);
+}
+
+.dash-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    z-index: 1030;
+}
+
+.dash-brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.dash-sidebar {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    bottom: 0;
+    width: 232px;
+    background: #ffffff;
+    border-right: 1px solid var(--border-color);
+    padding: 1rem 0.75rem;
+    overflow-y: auto;
+    z-index: 1020;
+}
+
+.side-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 8px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+    transition: var(--transition);
+}
+
+.side-link i {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+}
+
+.side-link:hover {
+    background: #f1f5f9;
+    color: var(--primary-color);
+}
+
+.side-link:hover i {
+    color: var(--primary-color);
+}
+
+.side-link.active {
+    background: rgba(79, 70, 229, 0.10);
+    color: var(--primary-color);
+}
+
+.side-link.active i {
+    color: var(--primary-color);
+}
+
+.side-link.text-danger i {
+    color: var(--danger-color);
+}
+
+.dash-content {
+    margin-left: 232px;
+    margin-top: 60px;
+    padding: 1.75rem 2rem 2.5rem;
+    min-height: calc(100vh - 60px);
+}
+
+/* Wireframe-style white stat cards */
+.wf-stat {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.1rem 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+    height: 100%;
+}
+
+.wf-stat:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.wf-stat .wf-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.35rem;
+}
+
+.wf-stat .wf-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-main);
+}
+
+.wf-stat .wf-icon {
+    font-size: 1.7rem;
+    color: #94a3b8;
+}
+
+/* Wireframe-style white content card */
+.wf-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.wf-card .wf-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.wf-card .wf-card-body {
+    padding: 1.25rem;
+}
+
+/* Staff request tabs (Pending / Approved / Blacklisted) */
+.wf-tabs .nav-link {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 8px 8px 0 0;
+}
+
+.wf-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    background: transparent;
+}
+
+/* Auth (login/register) centered card */
+.auth-wrap {
+    max-width: 430px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    padding: 2rem;
+}
+
+/* Trek details image placeholder (wireframe 10) */
+.trek-image-placeholder {
+    background: #e2e8f0;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    color: #94a3b8;
+    font-size: 3rem;
+}
+
+/* Mobile: sidebar becomes a horizontal scroll strip under the topbar */
+@media (max-width: 991.98px) {
+    .dash-sidebar {
+        position: static;
+        width: 100%;
+        margin-top: 60px;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.5rem 0.75rem;
+    }
+
+    .side-link {
+        white-space: nowrap;
+        margin-bottom: 0;
+    }
+
+    .dash-content {
+        margin-left: 0;
+        margin-top: 0;
+        padding: 1.25rem 1rem 2rem;
+    }
 }

@@ -1,149 +1,92 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}Trek Details - {{ trek.trek_name }} - TrekQuest{% endblock %}
+{% block title %}{{ trek.trek_name }} - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="mb-4">
-        <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Back to Treks
-        </a>
-    </div>
+<a href="{% if current_user.role == 'user' %}{{ url_for('browse_treks') }}{% else %}{{ url_for('index') }}{% endif %}"
+   class="text-decoration-none small fw-semibold d-inline-block mb-3">
+    <i class="bi bi-arrow-left me-1"></i>Back to Treks
+</a>
 
-    <div class="row g-4">
-        <!-- Main Details Column -->
-        <div class="col-lg-8">
-            <div class="card card-premium p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="badge badge-diff badge-diff-{{ trek.difficulty | lower }} fs-6">
-                        Difficulty: {{ trek.difficulty }}
-                    </span>
-                    <span class="badge badge-status badge-status-{{ trek.status | lower }} fs-6">
-                        Status: {{ trek.status }}
-                    </span>
+<!-- Trek details card (wireframe 10) -->
+<div class="wf-card" style="max-width: 860px;">
+    <div class="wf-card-body">
+        <h4 class="fw-bold mb-4">{{ trek.trek_name }}</h4>
+
+        <div class="row g-4">
+            <div class="col-md-5">
+                <div class="trek-image-placeholder">
+                    <i class="bi bi-image"></i>
                 </div>
-                
-                <h1 class="fw-bold mb-2">{{ trek.trek_name }}</h1>
-                <p class="lead text-primary mb-4"><i class="bi bi-geo-alt-fill me-1"></i>{{ trek.location }}</p>
-                
-                <hr>
-
-                <h5 class="fw-bold mb-3">About the Expedition</h5>
-                <p class="text-muted" style="white-space: pre-line; line-height: 1.6;">
-                    {{ trek.description or "No detailed description available for this trek." }}
-                </p>
-
-                <hr class="my-4">
-
-                <h5 class="fw-bold mb-3"><i class="bi bi-calendar-range me-2 text-primary"></i>Itinerary Details</h5>
+            </div>
+            <div class="col-md-7">
                 <div class="row g-3">
-                    <div class="col-sm-6">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <span class="text-muted small d-block">Start Date</span>
-                            <strong>{{ trek.start_date.strftime('%A, %d %B %Y') }}</strong>
-                        </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Location</div>
+                        <div class="fw-semibold">{{ trek.location }}</div>
                     </div>
-                    <div class="col-sm-6">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <span class="text-muted small d-block">End Date</span>
-                            <strong>{{ trek.end_date.strftime('%A, %d %B %Y') }}</strong>
-                        </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Difficulty</div>
+                        <span class="badge-diff badge-diff-{{ trek.difficulty | lower }}">{{ trek.difficulty }}</span>
                     </div>
-                    <div class="col-sm-6">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <span class="text-muted small d-block">Duration</span>
-                            <strong>{{ trek.duration_days }} Days / {{ trek.duration_days - 1 }} Nights</strong>
-                        </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Duration</div>
+                        <div class="fw-semibold">{{ trek.duration_days }} Days</div>
                     </div>
-                    <div class="col-sm-6">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <span class="text-muted small d-block">Current Space Status</span>
-                            <strong class="{% if trek.available_slots == 0 %}text-danger{% else %}text-success{% endif %}">
-                                {{ trek.available_slots }} Slots Remaining
-                            </strong>
-                        </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Status</div>
+                        <span class="badge-status badge-status-{{ trek.status | lower }}">{{ trek.status }}</span>
                     </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Start Date</div>
+                        <div class="fw-semibold">{{ trek.start_date.strftime('%d %b %Y') }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted">End Date</div>
+                        <div class="fw-semibold">{{ trek.end_date.strftime('%d %b %Y') }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Available Slots</div>
+                        <div class="fw-semibold">{{ trek.available_slots }}</div>
+                    </div>
+                    {% if trek.assigned_staff %}
+                    <div class="col-6">
+                        <div class="small text-muted">Trek Guide</div>
+                        <div class="fw-semibold">{{ trek.assigned_staff.full_name }}</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Booking & Guide Column -->
-        <div class="col-lg-4">
-            <!-- Booking Card -->
-            <div class="card card-premium p-4 mb-4 text-center">
-                <h4 class="fw-bold mb-3">Expedition Booking</h4>
-                
-                {% if user_booking %}
-                    <!-- User already booked -->
-                    <div class="alert alert-success py-2 mb-3">
-                        <i class="bi bi-patch-check-fill me-1"></i>You are registered!
-                        <div class="small mt-1">Status: <strong>{{ user_booking.status }}</strong></div>
-                    </div>
-                    
-                    {% if user_booking.status == 'Booked' and trek.status == 'Open' %}
-                        <form action="{{ url_for('cancel_booking', booking_id=user_booking.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-danger btn-lg w-100 mb-2">
-                                <i class="bi bi-x-circle me-1"></i>Cancel Booking
-                            </button>
-                        </form>
-                    {% else %}
-                        <button class="btn btn-secondary btn-lg w-100 mb-2" disabled>
-                            Cannot Cancel
-                        </button>
-                        <span class="form-text small text-muted">Cancellations are only allowed when the booking is active and the trek is Open.</span>
-                    {% endif %}
-                
-                {% else %}
-                    <!-- User not booked -->
-                    {% if trek.status == 'Open' %}
-                        {% if trek.available_slots > 0 %}
-                            <form action="{{ url_for('book_trek', trek_id=trek.id) }}" method="POST">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
-                                    <i class="bi bi-cart-plus me-1"></i>Book Trek Now
-                                </button>
-                            </form>
-                            <p class="small text-muted mb-0">Secure your slots instantly. Free cancellation while the booking remains open.</p>
-                        {% else %}
-                            <button class="btn btn-danger btn-lg w-100 mb-2" disabled>
-                                <i class="bi bi-exclamation-triangle me-1"></i>Slots Full
-                            </button>
-                            <p class="small text-muted">All registration slots have been filled. Join another trail!</p>
-                        {% endif %}
-                    {% else %}
-                        <button class="btn btn-secondary btn-lg w-100 mb-2" disabled>
-                            <i class="bi bi-lock me-1"></i>Booking Closed
-                        </button>
-                        <p class="small text-muted">Reservations are blocked. Trek status: <strong>{{ trek.status }}</strong></p>
-                    {% endif %}
-                {% endif %}
-            </div>
+        <hr>
 
-            <!-- Guide Bio Card -->
-            <div class="card card-premium p-4">
-                <h5 class="fw-bold mb-3"><i class="bi bi-person-badge me-2 text-success"></i>Assigned Guide</h5>
-                {% if trek.assigned_staff %}
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
-                            <i class="bi bi-person fs-4"></i>
-                        </div>
-                        <div>
-                            <strong class="d-block">{{ trek.assigned_staff.full_name }}</strong>
-                            <small class="text-muted">Wilderness Guide</small>
-                        </div>
-                    </div>
-                    <p class="small text-muted mb-0">
-                        {{ trek.assigned_staff.staff_profile.contact_details or "Experienced trekking leader ready to guide you." }}
-                    </p>
-                {% else %}
-                    <div class="text-center py-3 text-muted">
-                        <i class="bi bi-person-dash fs-2 d-block mb-1"></i>
-                        <span class="small">Guide details are to be decided.</span>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
+        <div class="small text-muted mb-1">Description</div>
+        <p class="mb-4">{{ trek.description or 'No description provided for this trek yet.' }}</p>
+
+        {% if current_user.role == 'user' %}
+            {% if user_booking and user_booking.status == 'Booked' %}
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge-status badge-status-booked">You have booked this trek</span>
+                    {% if trek.status == 'Open' %}
+                    <form method="POST" action="{{ url_for('cancel_booking', booking_id=user_booking.id) }}"
+                          onsubmit="return confirm('Cancel your booking for {{ trek.trek_name }}?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Cancel Booking</button>
+                    </form>
+                    {% endif %}
+                </div>
+            {% elif trek.status == 'Open' and trek.available_slots > 0 %}
+                <form method="POST" action="{{ url_for('book_trek', trek_id=trek.id) }}" class="text-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary px-4">Book Now</button>
+                </form>
+            {% elif trek.status == 'Open' %}
+                <div class="alert alert-warning mb-0">This trek is fully booked. No slots remaining.</div>
+            {% else %}
+                <div class="alert alert-secondary mb-0">Bookings are not open for this trek.</div>
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

@@ -1,151 +1,92 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}{% if trek %}Edit Trek - {{ trek.trek_name }}{% else %}Create New Trek{% endif %} - TrekQuest{% endblock %}
+{% block title %}{% if trek %}Edit Trek{% else %}Add New Trek{% endif %} - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center py-4">
-        <div class="col-lg-8">
-            <div class="card card-premium">
-                <div class="card-premium-header">
-                    <h3 class="mb-1">
-                        <i class="bi {% if trek %}bi-pencil-square{% else %}bi-plus-circle{% endif %} me-2"></i>
-                        {% if trek %}Edit Trek Details{% else %}Create New Trek Expedition{% endif %}
-                    </h3>
-                    <p class="mb-0 small text-white-50">Specify the trek information, capacity, schedules, and staff guide assignment.</p>
+<h4 class="fw-bold mb-4">{% if trek %}Edit Trek{% else %}Add New Trek{% endif %}</h4>
+
+<!-- Two-column form layout (wireframe 5) -->
+<div class="wf-card" style="max-width: 900px;">
+    <div class="wf-card-body">
+        <form method="POST"
+              action="{% if trek %}{{ url_for('edit_trek', trek_id=trek.id) }}{% else %}{{ url_for('create_trek') }}{% endif %}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="trek_name">Trek Name</label>
+                    <input type="text" class="form-control" id="trek_name" name="trek_name" required
+                           value="{{ trek.trek_name if trek else '' }}">
                 </div>
-                <div class="card-body p-4">
-                    <form action="{% if trek %}{{ url_for('edit_trek', trek_id=trek.id) }}{% else %}{{ url_for('create_trek') }}{% endif %}" method="POST" class="needs-validation" novalidate id="trekForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="start_date">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" required
+                           value="{{ trek.start_date.strftime('%Y-%m-%d') if trek else '' }}">
+                </div>
 
-                        <!-- Trek Name & Location -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="trek_name" class="form-label fw-semibold">Trek Name</label>
-                                <input type="text" class="form-control" id="trek_name" name="trek_name" value="{{ trek.trek_name if trek else '' }}" required placeholder="e.g. Himalayan Valley Trek">
-                                <div class="invalid-feedback">Please enter the trek name.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="location" class="form-label fw-semibold">Location</label>
-                                <input type="text" class="form-control" id="location" name="location" value="{{ trek.location if trek else '' }}" required placeholder="e.g. Himachal Pradesh">
-                                <div class="invalid-feedback">Please enter the location.</div>
-                            </div>
-                        </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="location">Location</label>
+                    <input type="text" class="form-control" id="location" name="location" required
+                           value="{{ trek.location if trek else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="end_date">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" required
+                           value="{{ trek.end_date.strftime('%Y-%m-%d') if trek else '' }}">
+                </div>
 
-                        <!-- Difficulty, Duration & Slots -->
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label for="difficulty" class="form-label fw-semibold">Difficulty Level</label>
-                                <select class="form-select" id="difficulty" name="difficulty" required>
-                                    <option value="" disabled {% if not trek %}selected{% endif %}>Choose...</option>
-                                    <option value="Easy" {% if trek and trek.difficulty == 'Easy' %}selected{% endif %}>Easy</option>
-                                    <option value="Moderate" {% if trek and trek.difficulty == 'Moderate' %}selected{% endif %}>Moderate</option>
-                                    <option value="Hard" {% if trek and trek.difficulty == 'Hard' %}selected{% endif %}>Hard</option>
-                                </select>
-                                <div class="invalid-feedback">Please select a difficulty level.</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="duration_days" class="form-label fw-semibold">Duration (Days)</label>
-                                <input type="number" class="form-control" id="duration_days" name="duration_days" value="{{ trek.duration_days if trek else '' }}" min="1" required placeholder="e.g. 5">
-                                <div class="invalid-feedback">Please enter a valid number of days.</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="available_slots" class="form-label fw-semibold">Capacity (Available Slots)</label>
-                                <input type="number" class="form-control" id="available_slots" name="available_slots" value="{{ trek.available_slots if trek else '' }}" min="0" required placeholder="e.g. 20">
-                                <div class="invalid-feedback">Please enter a valid number of slots.</div>
-                            </div>
-                        </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="difficulty">Difficulty</label>
+                    <select class="form-select" id="difficulty" name="difficulty" required>
+                        <option value="" {% if not trek %}selected{% endif %}>-- Select --</option>
+                        {% for diff in ['Easy', 'Moderate', 'Hard'] %}
+                        <option value="{{ diff }}" {% if trek and trek.difficulty == diff %}selected{% endif %}>{{ diff }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="assigned_staff_id">Assign Staff</label>
+                    <select class="form-select" id="assigned_staff_id" name="assigned_staff_id">
+                        <option value="">-- Select Staff --</option>
+                        {% for staff in approved_staff %}
+                        <option value="{{ staff.id }}"
+                                {% if trek and trek.assigned_staff_id == staff.id %}selected{% endif %}>
+                            {{ staff.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-                        <!-- Start & End Date -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="start_date" class="form-label fw-semibold">Start Date</label>
-                                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ trek.start_date.strftime('%Y-%m-%d') if trek else '' }}" required>
-                                <div class="invalid-feedback">Please select a valid start date.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="end_date" class="form-label fw-semibold">End Date</label>
-                                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ trek.end_date.strftime('%Y-%m-%d') if trek else '' }}" required>
-                                <div class="invalid-feedback">Please select a valid end date.</div>
-                            </div>
-                        </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="duration_days">Duration (Days)</label>
+                    <input type="number" class="form-control" id="duration_days" name="duration_days" min="1" required
+                           value="{{ trek.duration_days if trek else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="status">Status</label>
+                    <select class="form-select" id="status" name="status" required>
+                        {% for st in ['Pending', 'Open', 'Closed', 'Started', 'Completed'] %}
+                        <option value="{{ st }}" {% if trek and trek.status == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-                        <!-- Status & Assigned Staff -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label for="status" class="form-label fw-semibold">Trek Status</label>
-                                <select class="form-select" id="status" name="status" required>
-                                    <option value="Pending" {% if trek and trek.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Approved" {% if trek and trek.status == 'Approved' %}selected{% endif %}>Approved</option>
-                                    <option value="Open" {% if trek and trek.status == 'Open' %}selected{% endif %}>Open (Bookings Allowed)</option>
-                                    <option value="Closed" {% if trek and trek.status == 'Closed' %}selected{% endif %}>Closed</option>
-                                    <option value="Completed" {% if trek and trek.status == 'Completed' %}selected{% endif %}>Completed</option>
-                                </select>
-                                <div class="invalid-feedback">Please select a status.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="assigned_staff_id" class="form-label fw-semibold">Assign Staff Guide</label>
-                                <select class="form-select" id="assigned_staff_id" name="assigned_staff_id">
-                                    <option value="">-- No Guide Assigned --</option>
-                                    {% for staff_user in approved_staff %}
-                                        <option value="{{ staff_user.id }}" {% if trek and trek.assigned_staff_id == staff_user.id %}selected{% endif %}>
-                                            {{ staff_user.full_name }} ({{ staff_user.email }})
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <span class="form-text small text-muted">Only approved staff guides appear in this list.</span>
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-4">
-                            <label for="description" class="form-label fw-semibold">Trek Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="4" placeholder="Describe the trekking route, itinerary, rules, and gear guidelines...">{{ trek.description if trek else '' }}</textarea>
-                        </div>
-
-                        <!-- Submit Buttons -->
-                        <div class="d-flex gap-3 justify-content-end">
-                            <a href="{{ url_for('manage_treks') }}" class="btn btn-outline-secondary px-4">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-save me-1"></i>{% if trek %}Save Changes{% else %}Create Trek{% endif %}
-                            </button>
-                        </div>
-                        
-                    </form>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="available_slots">Available Slots</label>
+                    <input type="number" class="form-control" id="available_slots" name="available_slots" min="0" required
+                           value="{{ trek.available_slots if trek else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold" for="description">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ trek.description if trek and trek.description else '' }}</textarea>
                 </div>
             </div>
-        </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ url_for('manage_treks') }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">Save</button>
+            </div>
+        </form>
     </div>
 </div>
-
-<script>
-// Validate date consistency: End Date >= Start Date
-document.getElementById('trekForm').addEventListener('submit', function (event) {
-    var startDateVal = document.getElementById('start_date').value;
-    var endDateVal = document.getElementById('end_date').value;
-    var endDateField = document.getElementById('end_date');
-    
-    if (startDateVal && endDateVal) {
-        var start = new Date(startDateVal);
-        var end = new Date(endDateVal);
-        
-        if (end < start) {
-            endDateField.setCustomValidity("End date cannot be earlier than start date.");
-            event.preventDefault();
-            event.stopPropagation();
-        } else {
-            endDateField.setCustomValidity("");
-        }
-    }
-    
-    if (!this.checkValidity()) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
-    this.classList.add('was-validated');
-});
-</script>
 {% endblock %}

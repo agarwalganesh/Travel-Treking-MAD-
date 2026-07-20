@@ -1,0 +1,55 @@
+{% extends 'dash_base.html' %}
+
+{% block title %}Profile - Trekking Management Application{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4">My Profile</h4>
+
+<div class="wf-card" style="max-width: 640px;">
+    <div class="wf-card-header">
+        <span>Staff Profile</span>
+        {% if profile %}
+        <span class="badge-status badge-status-{{ profile.approval_status | lower }}">{{ profile.approval_status }}</span>
+        {% endif %}
+    </div>
+    <div class="wf-card-body">
+        <form method="POST" action="{{ url_for('staff_profile') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold" for="full_name">Full Name</label>
+                <input type="text" class="form-control" id="full_name" name="full_name"
+                       value="{{ current_user.full_name }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold" for="email">Email</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ current_user.email }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold" for="phone">Phone</label>
+                <input type="tel" class="form-control" id="phone" name="phone"
+                       value="{{ current_user.phone }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold" for="contact_details">Contact Details</label>
+                <textarea class="form-control" id="contact_details" name="contact_details" rows="2">{{ profile.contact_details if profile and profile.contact_details else '' }}</textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-semibold" for="specializations">Specializations</label>
+                <input type="text" class="form-control" id="specializations" name="specializations"
+                       placeholder="e.g. High Altitude, First Aid, Rock Climbing"
+                       value="{{ profile.specializations if profile and profile.specializations else '' }}">
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary px-4">Save Profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

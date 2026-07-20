@@ -1,199 +1,104 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}Manage Staff - TrekQuest{% endblock %}
+{% block title %}Staff Requests - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="mb-4">
-        <h2 class="fw-bold"><i class="bi bi-person-badge text-primary me-2"></i>Manage Trek Staff</h2>
-        <p class="text-muted">Review credentials, approve/reject pending leaders, and view all registered guides.</p>
-    </div>
+<h4 class="fw-bold mb-3">Staff Requests</h4>
 
-    <!-- Search Staff Card -->
-    <div class="card card-premium p-4 mb-4">
-        <form method="GET" action="{{ url_for('manage_staff') }}" class="row g-3">
-            <div class="col-md-8">
-                <label for="search" class="form-label small fw-semibold">Search Staff by Name or ID</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" id="search" name="search" placeholder="e.g. John or 2" value="{{ search_query }}">
-                </div>
-            </div>
-            <div class="col-md-4 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-search me-1"></i>Search
-                </button>
-                <a href="{{ url_for('manage_staff') }}" class="btn btn-outline-secondary w-100">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
+<!-- Status tabs (wireframe 6: Pending / Approved / Blacklisted) -->
+<ul class="nav wf-tabs border-bottom mb-3">
+    {% for t in ['pending', 'approved', 'rejected', 'blacklisted'] %}
+    <li class="nav-item">
+        <a class="nav-link {% if tab == t %}active{% endif %}"
+           href="{{ url_for('manage_staff', tab=t) }}">
+            {{ t | capitalize }} ({{ counts[t] }})
+        </a>
+    </li>
+    {% endfor %}
+</ul>
 
-    <!-- Pending Staff Requests Section -->
-    <div class="card card-premium mb-5">
-        <div class="card-premium-header bg-warning text-dark">
-            <h5 class="mb-0"><i class="bi bi-hourglass-split me-2"></i>Pending Staff Applications</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th>Full Name</th>
-                        <th>Contact Details</th>
-                        <th>Credentials & Experience</th>
-                        <th>Applied On</th>
-                        <th class="text-end" style="width: 220px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set pending_count = namespace(value=0) %}
-                    {% for staff_user in staff_list if staff_user.staff_profile and staff_user.staff_profile.approval_status == 'Pending' %}
-                        {% set pending_count.value = pending_count.value + 1 %}
-                        <tr>
-                            <td><code>#{{ staff_user.id }}</code></td>
-                            <td>
-                                <strong>{{ staff_user.full_name }}</strong>
-                                <div class="text-muted small">{{ staff_user.email }} | {{ staff_user.phone }}</div>
-                            </td>
-                            <td>{{ staff_user.phone }}</td>
-                            <td>
-                                <p class="mb-0 small text-muted text-wrap" style="max-width: 350px;">
-                                    {{ staff_user.staff_profile.contact_details }}
-                                </p>
-                            </td>
-                            <td>{{ staff_user.staff_profile.created_at.strftime('%d %b %Y') }}</td>
-                            <td class="text-end">
-                                <div class="btn-group">
-                                    <form action="{{ url_for('approve_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-success btn-sm me-1">
-                                            <i class="bi bi-check-lg me-1"></i>Approve
-                                        </button>
-                                    </form>
-                                    <form action="{{ url_for('reject_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="bi bi-x-lg me-1"></i>Reject
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    
-                    {% if pending_count.value == 0 %}
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                <i class="bi bi-check2-circle fs-3 d-block mb-1 text-success"></i>
-                                <span>No pending staff applications.</span>
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+<!-- Search within the selected tab -->
+<form method="GET" action="{{ url_for('manage_staff') }}" class="row g-2 mb-3" style="max-width: 420px;">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <div class="col-9">
+        <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" name="search" placeholder="Search by name or ID..."
+                   value="{{ search_query }}">
         </div>
     </div>
+    <div class="col-3 d-grid">
+        <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
+    </div>
+</form>
 
-    <!-- All Registered Staff Section -->
-    <div class="card card-premium">
-        <div class="card-premium-header bg-dark">
-            <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>All Trek Staff Directory</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th>Name</th>
-                        <th>Email & Phone</th>
-                        <th>Status</th>
-                        <th>Assigned Treks</th>
-                        <th>Blacklisted</th>
-                        <th class="text-end" style="width: 250px;">Control Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for staff_user in staff_list %}
-                        <tr>
-                            <td><code>#{{ staff_user.id }}</code></td>
-                            <td>
-                                <strong>{{ staff_user.full_name }}</strong>
-                                {% if staff_user.is_blacklisted %}
-                                    <span class="badge bg-danger ms-1">Blacklisted</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div>{{ staff_user.email }}</div>
-                                <div class="text-muted small">{{ staff_user.phone }}</div>
-                            </td>
-                            <td>
-                                <span class="badge badge-status badge-status-{{ staff_user.staff_profile.approval_status | lower if staff_user.staff_profile else 'n-a' }}">
-                                    {{ staff_user.staff_profile.approval_status if staff_user.staff_profile else 'None' }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-secondary rounded-pill">
-                                    {{ staff_user.staff_profile.assigned_trek_count if staff_user.staff_profile else 0 }} Treks
-                                </span>
-                            </td>
-                            <td>
-                                {% if staff_user.is_blacklisted %}
-                                    <span class="text-danger"><i class="bi bi-exclamation-octagon-fill"></i> Yes</span>
+<!-- Staff table (wireframe 6) -->
+<div class="wf-card">
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>Staff ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in staff_list %}
+                <tr>
+                    <td class="fw-semibold">S{{ '%03d' | format(staff.id) }}</td>
+                    <td>{{ staff.full_name }}</td>
+                    <td>{{ staff.email }}</td>
+                    <td>{{ staff.phone }}</td>
+                    <td>
+                        {% if staff.is_blacklisted %}
+                            <span class="badge-status badge-status-rejected">Blacklisted</span>
+                        {% elif staff.staff_profile %}
+                            <span class="badge-status badge-status-{{ staff.staff_profile.approval_status | lower }}">
+                                {{ staff.staff_profile.approval_status }}
+                            </span>
+                        {% else %}
+                            <span class="badge-status badge-status-pending">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if not staff.is_blacklisted and staff.staff_profile and staff.staff_profile.approval_status == 'Pending' %}
+                            <form method="POST" action="{{ url_for('approve_staff', staff_id=staff.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('reject_staff', staff_id=staff.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                            </form>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('toggle_blacklist_user', user_id=staff.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                {% if staff.is_blacklisted %}
+                                    <button type="submit" class="btn btn-outline-success btn-sm">Unblacklist</button>
                                 {% else %}
-                                    <span class="text-success"><i class="bi bi-check-circle-fill"></i> No</span>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Blacklist</button>
                                 {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <div class="d-flex justify-content-end gap-1">
-                                    {% if staff_user.staff_profile and staff_user.staff_profile.approval_status != 'Approved' %}
-                                        <form action="{{ url_for('approve_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-success btn-sm">
-                                                Approve
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                    
-                                    {% if staff_user.staff_profile and staff_user.staff_profile.approval_status != 'Rejected' and staff_user.staff_profile.approval_status != 'Approved' %}
-                                        <form action="{{ url_for('reject_staff', staff_id=staff_user.id) }}" method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-warning btn-sm">
-                                                Reject
-                                            </button>
-                                        </form>
-                                    {% endif %}
-
-                                    {% if staff_user.is_blacklisted %}
-                                        <form action="{{ url_for('toggle_blacklist_user', user_id=staff_user.id) }}" method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-success btn-sm">
-                                                <i class="bi bi-unlock"></i> Unblacklist
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <form action="{{ url_for('toggle_blacklist_user', user_id=staff_user.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to blacklist this staff member? They will lose access immediately.');" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                <i class="bi bi-slash-circle"></i> Blacklist
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-search fs-3 d-block mb-1"></i>
-                                <span>No staff guides found.</span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                            </form>
+                            {% if not staff.is_blacklisted and staff.staff_profile and staff.staff_profile.approval_status == 'Rejected' %}
+                            <form method="POST" action="{{ url_for('approve_staff', staff_id=staff.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No staff records in this tab.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

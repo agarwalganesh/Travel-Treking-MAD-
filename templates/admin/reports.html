@@ -1,0 +1,128 @@
+{% extends 'dash_base.html' %}
+
+{% block title %}Reports - Trekking Management Application{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4">Reports & Analytics</h4>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="wf-card h-100">
+            <div class="wf-card-header"><span><i class="bi bi-bar-chart-line me-2"></i>Popular Treks (Bookings)</span></div>
+            <div class="wf-card-body d-flex align-items-center justify-content-center">
+                {% if chart_data.popular_treks %}
+                    <div style="position: relative; height: 300px; width: 100%">
+                        <canvas id="popularTreksChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted my-5">
+                        <i class="bi bi-graph-up fs-2 d-block mb-2"></i>
+                        <span>No bookings found to generate this chart.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="wf-card h-100">
+            <div class="wf-card-header"><span><i class="bi bi-pie-chart me-2"></i>Treks by Difficulty</span></div>
+            <div class="wf-card-body d-flex align-items-center justify-content-center">
+                {% if chart_data.trek_difficulty %}
+                    <div style="position: relative; height: 300px; width: 100%">
+                        <canvas id="difficultyChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted my-5">
+                        <i class="bi bi-pie-chart fs-2 d-block mb-2"></i>
+                        <span>No treks found to generate this chart.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="wf-card h-100">
+            <div class="wf-card-header"><span><i class="bi bi-clipboard-data me-2"></i>Bookings by Status</span></div>
+            <div class="wf-card-body d-flex align-items-center justify-content-center">
+                {% if chart_data.booking_status %}
+                    <div style="position: relative; height: 300px; width: 100%">
+                        <canvas id="bookingStatusChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted my-5">
+                        <i class="bi bi-clipboard-data fs-2 d-block mb-2"></i>
+                        <span>No bookings found to generate this chart.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if chart_data.popular_treks %}
+    new Chart(document.getElementById('popularTreksChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_data.popular_treks.labels | tojson }},
+            datasets: [{
+                label: 'Bookings',
+                data: {{ chart_data.popular_treks['values'] | tojson }},
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                borderColor: 'rgba(79, 70, 229, 1)',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+    {% endif %}
+
+    {% if chart_data.trek_difficulty %}
+    new Chart(document.getElementById('difficultyChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_data.trek_difficulty.labels | tojson }},
+            datasets: [{
+                data: {{ chart_data.trek_difficulty['values'] | tojson }},
+                backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(245, 158, 11, 0.7)', 'rgba(239, 68, 68, 0.7)'],
+                borderColor: ['rgba(16, 185, 129, 1)', 'rgba(245, 158, 11, 1)', 'rgba(239, 68, 68, 1)'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+    {% endif %}
+
+    {% if chart_data.booking_status %}
+    new Chart(document.getElementById('bookingStatusChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: {{ chart_data.booking_status.labels | tojson }},
+            datasets: [{
+                data: {{ chart_data.booking_status['values'] | tojson }},
+                backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(239, 68, 68, 0.7)', 'rgba(79, 70, 229, 0.7)'],
+                borderColor: ['rgba(16, 185, 129, 1)', 'rgba(239, 68, 68, 1)', 'rgba(79, 70, 229, 1)'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

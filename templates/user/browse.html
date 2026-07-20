@@ -1,0 +1,75 @@
+{% extends 'dash_base.html' %}
+
+{% block title %}Browse Treks - Trekking Management Application{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-3">Browse Treks</h4>
+
+<!-- Search & filter bar -->
+<div class="wf-card mb-3">
+    <div class="wf-card-body py-3">
+        <form method="GET" action="{{ url_for('browse_treks') }}" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="search" placeholder="Search treks..."
+                           value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" name="difficulty">
+                    <option value="">Difficulty: All</option>
+                    {% for diff in ['Easy', 'Moderate', 'Hard'] %}
+                    <option value="{{ diff }}" {% if filter_difficulty == diff %}selected{% endif %}>{{ diff }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control form-control-sm" name="location" placeholder="Location: All"
+                       value="{{ filter_location }}">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-outline-primary btn-sm">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Open treks table -->
+<div class="wf-card">
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>Trek Name</th>
+                    <th>Location</th>
+                    <th>Difficulty</th>
+                    <th>Duration</th>
+                    <th>Start Date</th>
+                    <th>Available Slots</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trek in treks %}
+                <tr>
+                    <td class="fw-semibold">{{ trek.trek_name }}</td>
+                    <td>{{ trek.location }}</td>
+                    <td><span class="badge-diff badge-diff-{{ trek.difficulty | lower }}">{{ trek.difficulty }}</span></td>
+                    <td>{{ trek.duration_days }} Days</td>
+                    <td>{{ trek.start_date.strftime('%d %b %Y') }}</td>
+                    <td>{{ trek.available_slots }}</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('trek_details', trek_id=trek.id) }}" class="btn btn-primary btn-sm">Book Now</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No open treks match your filters.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

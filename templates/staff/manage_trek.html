@@ -1,0 +1,129 @@
+{% extends 'dash_base.html' %}
+
+{% block title %}{{ trek.trek_name }} - Trekking Management Application{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">{{ trek.trek_name }}</h4>
+    <a href="{{ url_for('staff_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<!-- Trek Information (wireframe 8) -->
+<div class="wf-card mb-4">
+    <div class="wf-card-header"><span>Trek Information</span></div>
+    <div class="wf-card-body">
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Location</div>
+                <div class="fw-semibold">{{ trek.location }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Duration</div>
+                <div class="fw-semibold">{{ trek.duration_days }} Days</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Total Slots</div>
+                <div class="fw-semibold">{{ trek.available_slots + active_count }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Available Slots</div>
+                <div class="fw-semibold">{{ trek.available_slots }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Start Date</div>
+                <div class="fw-semibold">{{ trek.start_date.strftime('%d %b %Y') }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">End Date</div>
+                <div class="fw-semibold">{{ trek.end_date.strftime('%d %b %Y') }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Status</div>
+                <span class="badge-status badge-status-{{ trek.status | lower }}">{{ trek.status }}</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="small text-muted">Difficulty</div>
+                <span class="badge-diff badge-diff-{{ trek.difficulty | lower }}">{{ trek.difficulty }}</span>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Slots + status controls -->
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <form method="POST" action="{{ url_for('staff_update_slots', trek_id=trek.id) }}" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-7">
+                        <label class="form-label small fw-semibold" for="slots">Update Available Slots</label>
+                        <input type="number" class="form-control form-control-sm" id="slots" name="slots"
+                               min="0" value="{{ trek.available_slots }}" required>
+                    </div>
+                    <div class="col-5 d-grid">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Update</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-7 text-md-end">
+                {% if trek.status in ['Pending', 'Closed'] %}
+                <form method="POST" action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='open') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success btn-sm">Open Bookings</button>
+                </form>
+                {% endif %}
+                {% if trek.status == 'Open' %}
+                <form method="POST" action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='close') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-warning btn-sm">Close Bookings</button>
+                </form>
+                {% endif %}
+                {% if trek.status in ['Open', 'Closed'] %}
+                <form method="POST" action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='start') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Mark as Started</button>
+                </form>
+                {% endif %}
+                {% if trek.status == 'Started' %}
+                <form method="POST" action="{{ url_for('staff_change_status', trek_id=trek.id, action_name='complete') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-success btn-sm">Mark as Completed</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Participants list (wireframe 8) -->
+<div class="wf-card">
+    <div class="wf-card-header"><span>Participants ({{ active_count }})</span></div>
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>User Name</th>
+                    <th>Email</th>
+                    <th>Booking Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td class="fw-semibold">{{ booking.user.full_name }}</td>
+                    <td>{{ booking.user.email }}</td>
+                    <td>{{ booking.booking_date.strftime('%d %b %Y') }}</td>
+                    <td><span class="badge-status badge-status-{{ booking.status | lower }}">{{ booking.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">No participants registered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

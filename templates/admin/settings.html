@@ -1,14 +1,14 @@
 {% extends 'dash_base.html' %}
 
-{% block title %}Profile - Trekking Management Application{% endblock %}
+{% block title %}Settings - Trekking Management Application{% endblock %}
 
 {% block content %}
-<h4 class="fw-bold mb-4">My Profile</h4>
+<h4 class="fw-bold mb-4">Settings</h4>
 
 <div class="wf-card" style="max-width: 640px;">
-    <div class="wf-card-header"><span>Profile Details</span></div>
+    <div class="wf-card-header"><span>Account Settings</span></div>
     <div class="wf-card-body">
-        <form method="POST" action="{{ url_for('edit_profile') }}">
+        <form method="POST" action="{{ url_for('admin_settings') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="mb-3">
@@ -29,8 +29,22 @@
                        value="{{ current_user.phone }}" required>
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            <hr>
+            <p class="small text-muted mb-3">Change password (leave blank to keep the current one)</p>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold" for="current_password">Current Password</label>
+                <input type="password" class="form-control" id="current_password" name="current_password"
+                       autocomplete="current-password">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-semibold" for="new_password">New Password</label>
+                <input type="password" class="form-control" id="new_password" name="new_password"
+                       minlength="8" autocomplete="new-password">
+            </div>
+
+            <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-primary px-4">Save Changes</button>
             </div>
         </form>

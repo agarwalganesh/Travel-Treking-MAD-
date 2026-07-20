@@ -1,0 +1,38 @@
+{% extends 'dash_base.html' %}
+
+{% block title %}Trekking History - Trekking Management Application{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4">Trekking History</h4>
+
+<div class="wf-card">
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>Trek Name</th>
+                    <th>Trek Dates</th>
+                    <th>Completed On</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td class="fw-semibold">{{ booking.trek.trek_name }}</td>
+                    <td>{{ booking.trek.start_date.strftime('%d %b') }} - {{ booking.trek.end_date.strftime('%d %b %Y') }}</td>
+                    <td>{{ booking.trek.end_date.strftime('%d %b %Y') }}</td>
+                    <td><span class="badge-status badge-status-completed">Completed</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        No completed treks yet. Your finished expeditions will appear here.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

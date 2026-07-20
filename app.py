@@ -135,8 +135,9 @@ def login():
                 flash(f"Login Blocked: Staff account approval status is '{profile.approval_status if profile else 'Pending'}'. Please wait for Admin approval.", "warning")
                 return redirect(url_for('login'))
 
-        # Perform login session initiation
-        login_user(user)
+        # Perform login session initiation ("Remember me" keeps the session
+        # alive across browser restarts when the checkbox is ticked)
+        login_user(user, remember=bool(request.form.get('remember')))
         flash(f"Welcome back, {user.full_name}! You are signed in as {user.role.upper()}.", "success")
 
         # Redirect accordingly
@@ -150,10 +151,10 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/register/user', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET', 'POST'])
 @limiter.limit("5 per minute", methods=['POST'])   # slow down enumeration/abuse (Fix #9)
-def register_user():
-    """Trekker registration route."""
+def register():
+    """Unified registration page with a role selector (User / Staff)."""
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
@@ -162,86 +163,70 @@ def register_user():
         email = request.form.get('email', '').strip()
         phone = request.form.get('phone', '').strip()
         password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        role = request.form.get('role', '')
+        contact_details = request.form.get('contact_details', '').strip()
+
+        if role not in ('user', 'staff'):
+            flash("Please select a valid role.", "danger")
+            return redirect(url_for('register'))
+
+        if not full_name or not email or not phone:
+            flash("Full name, email and phone are required.", "danger")
+            return redirect(url_for('register'))
+
+        if password != confirm_password:
+            flash("Passwords do not match. Please re-enter them.", "danger")
+            return redirect(url_for('register'))
 
         # Enforce the password policy (Fix #6)
         strong, reason = is_password_strong(password)
         if not strong:
             flash(reason, "danger")
-            return redirect(url_for('register_user'))
+            return redirect(url_for('register'))
 
         # Duplicate check. The message is intentionally generic so it does not
         # confirm to a stranger whether an email is registered (Fix #9).
         if User.query.filter_by(email=email).first():
             flash("Registration could not be completed. If you already have an account, please sign in.", "warning")
-            return redirect(url_for('register_user'))
+            return redirect(url_for('register'))
 
-        # Create new Trekker user
         new_user = User(
             full_name=full_name,
             email=email,
             phone=phone,
             password_hash=generate_password_hash(password),
-            role='user'
+            role=role
         )
         db.session.add(new_user)
-        db.session.commit()
+        db.session.commit()  # Commit to generate ID for the staff profile link
 
-        flash("Registration successful! You can now sign in.", "success")
+        if role == 'staff':
+            # Staff accounts start as Pending until an Admin approves them
+            db.session.add(StaffProfile(
+                user_id=new_user.id,
+                contact_details=contact_details,
+                approval_status='Pending'
+            ))
+            db.session.commit()
+            flash("Application submitted successfully! Your account is pending Admin review.", "info")
+        else:
+            flash("Registration successful! You can now sign in.", "success")
         return redirect(url_for('login'))
 
-    return render_template('register_user.html')
+    return render_template('register.html')
 
 
-@app.route('/register/staff', methods=['GET', 'POST'])
-@limiter.limit("5 per minute", methods=['POST'])   # slow down enumeration/abuse (Fix #9)
+@app.route('/register/user')
+def register_user():
+    """Legacy URL kept so old links keep working."""
+    return redirect(url_for('register'))
+
+
+@app.route('/register/staff')
 def register_staff():
-    """Staff guide registration route."""
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        full_name = request.form.get('full_name', '').strip()
-        email = request.form.get('email', '').strip()
-        phone = request.form.get('phone', '').strip()
-        contact_details = request.form.get('contact_details', '').strip()
-        password = request.form.get('password', '')
-
-        # Enforce the password policy (Fix #6)
-        strong, reason = is_password_strong(password)
-        if not strong:
-            flash(reason, "danger")
-            return redirect(url_for('register_staff'))
-
-        # Duplicate check with a generic message to avoid leaking which emails
-        # are registered (Fix #9).
-        if User.query.filter_by(email=email).first():
-            flash("Registration could not be completed. If you already have an account, please sign in.", "warning")
-            return redirect(url_for('register_staff'))
-
-        # Create User entry
-        new_staff = User(
-            full_name=full_name,
-            email=email,
-            phone=phone,
-            password_hash=generate_password_hash(password),
-            role='staff'
-        )
-        db.session.add(new_staff)
-        db.session.commit() # Commit to generate ID for staff profile link
-
-        # Create Staff Profile (Defaults to Pending status)
-        new_profile = StaffProfile(
-            user_id=new_staff.id,
-            contact_details=contact_details,
-            approval_status='Pending'
-        )
-        db.session.add(new_profile)
-        db.session.commit()
-
-        flash("Application submitted successfully! Your account is pending Admin review.", "info")
-        return redirect(url_for('login'))
-
-    return render_template('register_staff.html')
+    """Legacy URL kept so old links keep working."""
+    return redirect(url_for('register'))
 
 
 
@@ -275,35 +260,127 @@ def admin_dashboard():
         'pending_staff': User.query.join(StaffProfile).filter(StaffProfile.approval_status == 'Pending').count()
     }
 
-    # Generate Chart Data
+    # Latest few bookings for the "Recent Bookings" table
+    recent_bookings = Booking.query.order_by(Booking.booking_date.desc()).limit(5).all()
+
+    return render_template('admin/dashboard.html', stats=stats, recent_bookings=recent_bookings)
+
+
+@app.route('/admin/search')
+@login_required
+def admin_search():
+    """Global admin search across treks, trekkers, staff, and bookings."""
+    if current_user.role != 'admin':
+        flash("Unauthorized: Admin privilege required.", "danger")
+        return redirect(url_for('index'))
+
+    q = request.args.get('q', '').strip()
+    results = {'treks': [], 'users': [], 'staff': [], 'bookings': []}
+
+    if q:
+        like = f"%{q}%"
+        results['treks'] = Trek.query.filter(
+            (Trek.trek_name.like(like)) | (Trek.location.like(like))
+        ).all()
+        results['users'] = User.query.filter(
+            User.role == 'user',
+            (User.full_name.like(like)) | (User.email.like(like))
+        ).all()
+        results['staff'] = User.query.filter(
+            User.role == 'staff',
+            (User.full_name.like(like)) | (User.email.like(like))
+        ).all()
+        results['bookings'] = Booking.query.join(User).join(Trek).filter(
+            (User.full_name.like(like)) | (Trek.trek_name.like(like))
+        ).all()
+
+    return render_template('admin/search.html', q=q, results=results)
+
+
+@app.route('/admin/reports')
+@login_required
+def admin_reports():
+    """Analytics charts: popular treks, difficulty split, booking statuses."""
+    if current_user.role != 'admin':
+        flash("Unauthorized: Admin privilege required.", "danger")
+        return redirect(url_for('index'))
+
     # 1. Popular treks (bookings per trek)
     popular_query = db.session.query(
         Trek.trek_name, db.func.count(Booking.id)
     ).join(Booking).filter(Booking.status == 'Booked').group_by(Trek.id).all()
-    
-    popular_labels = [row[0] for row in popular_query]
-    popular_values = [row[1] for row in popular_query]
 
     # 2. Difficulty distribution
     difficulty_query = db.session.query(
         Trek.difficulty, db.func.count(Trek.id)
     ).group_by(Trek.difficulty).all()
-    
-    diff_labels = [row[0] for row in difficulty_query]
-    diff_values = [row[1] for row in difficulty_query]
+
+    # 3. Booking status split
+    status_query = db.session.query(
+        Booking.status, db.func.count(Booking.id)
+    ).group_by(Booking.status).all()
 
     chart_data = {
         'popular_treks': {
-            'labels': popular_labels,
-            'values': popular_values
-        } if popular_labels else None,
+            'labels': [row[0] for row in popular_query],
+            'values': [row[1] for row in popular_query]
+        } if popular_query else None,
         'trek_difficulty': {
-            'labels': diff_labels,
-            'values': diff_values
-        } if diff_labels else None
+            'labels': [row[0] for row in difficulty_query],
+            'values': [row[1] for row in difficulty_query]
+        } if difficulty_query else None,
+        'booking_status': {
+            'labels': [row[0] for row in status_query],
+            'values': [row[1] for row in status_query]
+        } if status_query else None
     }
 
-    return render_template('admin/dashboard.html', stats=stats, chart_data=chart_data)
+    return render_template('admin/reports.html', chart_data=chart_data)
+
+
+@app.route('/admin/settings', methods=['GET', 'POST'])
+@login_required
+def admin_settings():
+    """Admin account settings: profile details and password change."""
+    if current_user.role != 'admin':
+        flash("Unauthorized: Admin privilege required.", "danger")
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+
+        existing = User.query.filter(User.email == email, User.id != current_user.id).first()
+        if existing:
+            flash("This email address is already in use by another account.", "danger")
+            return redirect(url_for('admin_settings'))
+
+        if full_name:
+            current_user.full_name = full_name
+        if email:
+            current_user.email = email
+        if phone:
+            current_user.phone = phone
+
+        # Optional password change: requires the current password to match
+        new_password = request.form.get('new_password', '')
+        if new_password:
+            current_password = request.form.get('current_password', '')
+            if not check_password_hash(current_user.password_hash, current_password):
+                flash("Current password is incorrect. Password not changed.", "danger")
+                return redirect(url_for('admin_settings'))
+            strong, reason = is_password_strong(new_password)
+            if not strong:
+                flash(reason, "danger")
+                return redirect(url_for('admin_settings'))
+            current_user.password_hash = generate_password_hash(new_password)
+
+        db.session.commit()
+        flash("Settings saved successfully.", "success")
+        return redirect(url_for('admin_settings'))
+
+    return render_template('admin/settings.html')
 
 
 @app.route('/admin/treks')
@@ -415,7 +492,8 @@ def create_trek():
             start_date=start_date,
             end_date=end_date,
             status=status,
-            assigned_staff_id=assigned_staff_id
+            assigned_staff_id=assigned_staff_id,
+            description=request.form.get('description', '').strip() or None
         )
         db.session.add(new_trek)
         db.session.commit()
@@ -496,6 +574,7 @@ def edit_trek(trek_id):
 
         trek.status = request.form.get('status')
         trek.assigned_staff_id = new_assigned_staff_id
+        trek.description = request.form.get('description', '').strip() or None
 
         db.session.commit()
 
@@ -550,9 +629,30 @@ def manage_staff():
         return redirect(url_for('index'))
 
     search_query = request.args.get('search', '').strip()
-    
-    query = User.query.filter(User.role == 'staff')
-    
+    tab = request.args.get('tab', 'pending')
+    if tab not in ('pending', 'approved', 'rejected', 'blacklisted'):
+        tab = 'pending'
+
+    # Tab counters shown in the pill labels (wireframe: Pending (3) etc.)
+    base = User.query.filter(User.role == 'staff')
+    counts = {
+        'pending': base.join(StaffProfile).filter(
+            StaffProfile.approval_status == 'Pending', User.is_blacklisted == False).count(),
+        'approved': base.join(StaffProfile).filter(
+            StaffProfile.approval_status == 'Approved', User.is_blacklisted == False).count(),
+        'rejected': base.join(StaffProfile).filter(
+            StaffProfile.approval_status == 'Rejected', User.is_blacklisted == False).count(),
+        'blacklisted': base.filter(User.is_blacklisted == True).count(),
+    }
+
+    if tab == 'blacklisted':
+        query = base.filter(User.is_blacklisted == True)
+    else:
+        query = base.join(StaffProfile).filter(
+            StaffProfile.approval_status == tab.capitalize(),
+            User.is_blacklisted == False
+        )
+
     if search_query:
         if search_query.isdigit():
             query = query.filter(User.id == int(search_query))
@@ -560,7 +660,8 @@ def manage_staff():
             query = query.filter(User.full_name.like(f"%{search_query}%"))
 
     staff_list = query.all()
-    return render_template('admin/staff.html', staff_list=staff_list, search_query=search_query)
+    return render_template('admin/staff.html', staff_list=staff_list,
+                           search_query=search_query, tab=tab, counts=counts)
 
 
 @app.route('/admin/staff/approve/<int:staff_id>', methods=['POST'])
@@ -720,7 +821,78 @@ def staff_dashboard():
         return redirect(url_for('index'))
 
     assigned_treks = Trek.query.filter_by(assigned_staff_id=current_user.id).order_by(Trek.start_date.asc()).all()
-    return render_template('staff/dashboard.html', assigned_treks=assigned_treks)
+
+    # Active participants per trek + dashboard stat cards (wireframe 7)
+    participant_counts = {
+        trek.id: Booking.query.filter_by(trek_id=trek.id, status='Booked').count()
+        for trek in assigned_treks
+    }
+    stats = {
+        'assigned_treks': len(assigned_treks),
+        'total_participants': sum(participant_counts.values()),
+        'open_treks': sum(1 for trek in assigned_treks if trek.status == 'Open'),
+    }
+
+    return render_template('staff/dashboard.html', assigned_treks=assigned_treks,
+                           participant_counts=participant_counts, stats=stats)
+
+
+@app.route('/staff/participants')
+@login_required
+def staff_participants():
+    """All participants across every trek assigned to this staff member."""
+    if current_user.role != 'staff':
+        flash("Unauthorized.", "danger")
+        return redirect(url_for('index'))
+
+    profile = StaffProfile.query.filter_by(user_id=current_user.id).first()
+    if not profile or profile.approval_status != 'Approved':
+        flash("Access Denied: Your staff profile is not approved yet.", "warning")
+        return redirect(url_for('index'))
+
+    bookings = Booking.query.join(Trek).filter(
+        Trek.assigned_staff_id == current_user.id
+    ).order_by(Booking.booking_date.desc()).all()
+
+    return render_template('staff/participants.html', bookings=bookings)
+
+
+@app.route('/staff/profile', methods=['GET', 'POST'])
+@login_required
+def staff_profile():
+    """Staff member's own profile: contact info and specializations."""
+    if current_user.role != 'staff':
+        flash("Unauthorized.", "danger")
+        return redirect(url_for('index'))
+
+    profile = StaffProfile.query.filter_by(user_id=current_user.id).first()
+
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+
+        existing = User.query.filter(User.email == email, User.id != current_user.id).first()
+        if existing:
+            flash("This email address is already in use by another account.", "danger")
+            return redirect(url_for('staff_profile'))
+
+        if full_name:
+            current_user.full_name = full_name
+        if email:
+            current_user.email = email
+        if phone:
+            current_user.phone = phone
+
+        if profile:
+            profile.contact_details = request.form.get('contact_details', '').strip()
+            profile.specializations = request.form.get('specializations', '').strip()
+
+        db.session.commit()
+        flash("Your profile has been updated successfully.", "success")
+        return redirect(url_for('staff_profile'))
+
+    return render_template('staff/profile.html', profile=profile)
 
 
 @app.route('/staff/treks/<int:trek_id>/update-slots', methods=['POST'])
@@ -790,7 +962,7 @@ def staff_change_status(trek_id, action_name):
 @app.route('/staff/treks/<int:trek_id>/participants')
 @login_required
 def staff_trek_participants(trek_id):
-    """View registrant details list for an assigned trek."""
+    """Manage Trek page: trek info, participant list, and status actions."""
     if current_user.role != 'staff':
         flash("Unauthorized.", "danger")
         return redirect(url_for('index'))
@@ -802,8 +974,10 @@ def staff_trek_participants(trek_id):
         flash("Access Denied.", "danger")
         return redirect(url_for('staff_dashboard'))
 
-    bookings = Booking.query.filter_by(trek_id=trek_id).all()
-    return render_template('staff/participants.html', trek=trek, bookings=bookings)
+    bookings = Booking.query.filter_by(trek_id=trek_id).order_by(Booking.booking_date.desc()).all()
+    active_count = sum(1 for b in bookings if b.status == 'Booked')
+    return render_template('staff/manage_trek.html', trek=trek, bookings=bookings,
+                           active_count=active_count)
 
 
 # ==========================================
@@ -834,13 +1008,62 @@ def user_dashboard():
 
     treks = query.order_by(Trek.start_date.asc()).all()
 
+    # "My Bookings" preview section on the dashboard (wireframe 9)
+    my_recent_bookings = Booking.query.filter_by(user_id=current_user.id).order_by(
+        Booking.booking_date.desc()).limit(5).all()
+
     return render_template(
         'user/dashboard.html',
         treks=treks,
         search_query=search_query,
         filter_difficulty=filter_difficulty,
+        filter_location=filter_location,
+        my_recent_bookings=my_recent_bookings
+    )
+
+
+@app.route('/treks')
+@login_required
+def browse_treks():
+    """Full browse/search page for open treks (sidebar: Browse Treks)."""
+    if current_user.role != 'user':
+        flash("Unauthorized: Trekker view only.", "danger")
+        return redirect(url_for('index'))
+
+    search_query = request.args.get('search', '').strip()
+    filter_difficulty = request.args.get('difficulty', '').strip()
+    filter_location = request.args.get('location', '').strip()
+
+    query = Trek.query.filter(Trek.status == 'Open')
+    if search_query:
+        query = query.filter(Trek.trek_name.like(f"%{search_query}%"))
+    if filter_difficulty:
+        query = query.filter(Trek.difficulty == filter_difficulty)
+    if filter_location:
+        query = query.filter(Trek.location.like(f"%{filter_location}%"))
+
+    treks = query.order_by(Trek.start_date.asc()).all()
+
+    return render_template(
+        'user/browse.html',
+        treks=treks,
+        search_query=search_query,
+        filter_difficulty=filter_difficulty,
         filter_location=filter_location
     )
+
+
+@app.route('/history')
+@login_required
+def trek_history():
+    """Trekking History: all completed expeditions for this trekker."""
+    if current_user.role != 'user':
+        flash("Unauthorized view.", "danger")
+        return redirect(url_for('index'))
+
+    completed = Booking.query.filter_by(user_id=current_user.id, status='Completed').order_by(
+        Booking.booking_date.desc()).all()
+    return render_template('user/history.html', bookings=completed)
 
 
 @app.route('/trek/<int:trek_id>')

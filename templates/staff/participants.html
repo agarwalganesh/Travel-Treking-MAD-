@@ -1,90 +1,41 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}Participant List - {{ trek.trek_name }} - TrekQuest{% endblock %}
+{% block title %}Participants - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h2 class="fw-bold"><i class="bi bi-people-fill text-success me-2"></i>Participant Roster</h2>
-            <p class="text-muted">Registered trekkers for <strong>{{ trek.trek_name }}</strong> ({{ trek.location }})</p>
-        </div>
-        <a href="{{ url_for('staff_dashboard') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
-        </a>
-    </div>
+<h4 class="fw-bold mb-4">Participants</h4>
 
-    <!-- Trek Details Summary Card -->
-    <div class="card card-premium p-4 mb-4 bg-light">
-        <div class="row">
-            <div class="col-md-3 border-end">
-                <span class="text-muted small d-block">Trek Schedule</span>
-                <strong>{{ trek.start_date.strftime('%d %b %Y') }} - {{ trek.end_date.strftime('%d %b %Y') }}</strong>
-            </div>
-            <div class="col-md-3 border-end">
-                <span class="text-muted small d-block">Difficulty</span>
-                <span class="badge badge-diff badge-diff-{{ trek.difficulty | lower }} mt-1">{{ trek.difficulty }}</span>
-            </div>
-            <div class="col-md-3 border-end">
-                <span class="text-muted small d-block">Expedition Status</span>
-                <span class="badge badge-status badge-status-{{ trek.status | lower }} mt-1">{{ trek.status }}</span>
-            </div>
-            <div class="col-md-3">
-                <span class="text-muted small d-block">Total Registered</span>
-                <strong class="fs-5">{{ bookings | length }} Trekker(s)</strong>
-            </div>
-        </div>
-    </div>
-
-    <!-- Participants Table -->
-    <div class="card card-premium">
-        <div class="card-premium-header bg-dark">
-            <h5 class="mb-0"><i class="bi bi-card-checklist me-2"></i>Trekker Attendance Sheet</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 80px;">User ID</th>
-                        <th>Full Name</th>
-                        <th>Email Address</th>
-                        <th>Phone Number</th>
-                        <th>Booking Status</th>
-                        <th>Booking Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for booking in bookings %}
-                        <tr>
-                            <td><code>#{{ booking.user.id }}</code></td>
-                            <td>
-                                <strong>{{ booking.user.full_name }}</strong>
-                                {% if booking.user.is_blacklisted %}
-                                    <span class="badge bg-danger ms-1">Blacklisted</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ booking.user.email }}</td>
-                            <td>{{ booking.user.phone }}</td>
-                            <td>
-                                <span class="badge badge-status badge-status-{{ booking.status | lower }}">
-                                    {{ booking.status }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="small text-muted">{{ booking.booking_date.strftime('%d %b %Y %H:%M') }}</span>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-5">
-                                <i class="bi bi-people fs-2 d-block mb-2"></i>
-                                <span>No participants have booked this trek yet.</span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<div class="wf-card">
+    <div class="wf-card-header"><span>All participants across your assigned treks</span></div>
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>User Name</th>
+                    <th>Email</th>
+                    <th>Trek</th>
+                    <th>Booking Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td class="fw-semibold">{{ booking.user.full_name }}</td>
+                    <td>{{ booking.user.email }}</td>
+                    <td>{{ booking.trek.trek_name }}</td>
+                    <td>{{ booking.booking_date.strftime('%d %b %Y') }}</td>
+                    <td><span class="badge-status badge-status-{{ booking.status | lower }}">{{ booking.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        No participants yet across your assigned treks.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

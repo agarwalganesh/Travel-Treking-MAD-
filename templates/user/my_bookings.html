@@ -1,140 +1,51 @@
-{% extends 'base.html' %}
+{% extends 'dash_base.html' %}
 
-{% block title %}My Bookings - TrekQuest{% endblock %}
+{% block title %}My Bookings - Trekking Management Application{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="mb-4">
-        <h2 class="fw-bold"><i class="bi bi-journal-bookmark-fill text-primary me-2"></i>My Bookings & Trek History</h2>
-        <p class="text-muted">Monitor your active registrations, view itinerary logs, and review previous expeditions.</p>
-    </div>
+<h4 class="fw-bold mb-4">My Bookings</h4>
 
-    <!-- Active Reservations Section -->
-    <div class="card card-premium mb-5">
-        <div class="card-premium-header bg-primary">
-            <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Active Expedition Registrations</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 80px;">Booking ID</th>
-                        <th>Trek Name</th>
-                        <th>Location</th>
-                        <th>Start / End Date</th>
-                        <th>Guide</th>
-                        <th>Booking Status</th>
-                        <th class="text-end" style="width: 150px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set active_count = namespace(value=0) %}
-                    {% for booking in bookings if booking.status == 'Booked' %}
-                        {% set active_count.value = active_count.value + 1 %}
-                        <tr>
-                            <td><code>#{{ booking.id }}</code></td>
-                            <td>
-                                <strong>{{ booking.trek.trek_name }}</strong>
-                                <span class="badge badge-diff badge-diff-{{ booking.trek.difficulty | lower }} ms-1">{{ booking.trek.difficulty }}</span>
-                            </td>
-                            <td>{{ booking.trek.location }}</td>
-                            <td>{{ booking.trek.start_date.strftime('%d %b %Y') }} - {{ booking.trek.end_date.strftime('%d %b %Y') }}</td>
-                            <td>
-                                {% if booking.trek.assigned_staff %}
-                                    {{ booking.trek.assigned_staff.full_name }}
-                                {% else %}
-                                    <span class="text-muted small">TBD</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge badge-status badge-status-booked">
-                                    {{ booking.status }}
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="btn-group">
-                                    <a href="{{ url_for('trek_details', trek_id=booking.trek.id) }}" class="btn btn-outline-primary btn-sm">
-                                        Details
-                                    </a>
-                                    {% if booking.trek.status == 'Open' %}
-                                        <form action="{{ url_for('cancel_booking', booking_id=booking.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this booking? This will restore 1 slot.');" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                Cancel
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    
-                    {% if active_count.value == 0 %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-calendar-x fs-3 d-block mb-1 text-muted"></i>
-                                <span>You have no active bookings. Explore available treks to register!</span>
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Previous / Cancelled / Finished History Section -->
-    <div class="card card-premium">
-        <div class="card-premium-header bg-dark">
-            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Expedition History & Logs</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover table-premium mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 80px;">Booking ID</th>
-                        <th>Trek Name</th>
-                        <th>Location</th>
-                        <th>Start / End Date</th>
-                        <th>Booking Status</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set history_count = namespace(value=0) %}
-                    {% for booking in bookings if booking.status in ['Cancelled', 'Completed'] %}
-                        {% set history_count.value = history_count.value + 1 %}
-                        <tr>
-                            <td><code>#{{ booking.id }}</code></td>
-                            <td>
-                                <strong>{{ booking.trek.trek_name }}</strong>
-                                <span class="badge badge-diff badge-diff-{{ booking.trek.difficulty | lower }} ms-1">{{ booking.trek.difficulty }}</span>
-                            </td>
-                            <td>{{ booking.trek.location }}</td>
-                            <td>{{ booking.trek.start_date.strftime('%d %b %Y') }} - {{ booking.trek.end_date.strftime('%d %b %Y') }}</td>
-                            <td>
-                                <span class="badge badge-status badge-status-{{ booking.status | lower }}">
-                                    {{ booking.status }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('trek_details', trek_id=booking.trek.id) }}" class="btn btn-outline-secondary btn-sm">
-                                    View Trek Details
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    
-                    {% if history_count.value == 0 %}
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                <i class="bi bi-archive fs-3 d-block mb-1"></i>
-                                <span>No previous history logs found.</span>
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+<div class="wf-card">
+    <div class="table-responsive">
+        <table class="table table-premium mb-0">
+            <thead>
+                <tr>
+                    <th>Trek Name</th>
+                    <th>Booking Date</th>
+                    <th>Trek Dates</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td class="fw-semibold">{{ booking.trek.trek_name }}</td>
+                    <td>{{ booking.booking_date.strftime('%d %b %Y') }}</td>
+                    <td>{{ booking.trek.start_date.strftime('%d %b') }} - {{ booking.trek.end_date.strftime('%d %b %Y') }}</td>
+                    <td><span class="badge-status badge-status-{{ booking.status | lower }}">{{ booking.status }}</span></td>
+                    <td class="text-end">
+                        <a href="{{ url_for('trek_details', trek_id=booking.trek_id) }}" class="btn btn-outline-primary btn-sm">
+                            View Details
+                        </a>
+                        {% if booking.status == 'Booked' and booking.trek.status == 'Open' %}
+                        <form method="POST" action="{{ url_for('cancel_booking', booking_id=booking.id) }}" class="d-inline"
+                              onsubmit="return confirm('Cancel your booking for {{ booking.trek.trek_name }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Cancel</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        You have no bookings yet. <a href="{{ url_for('browse_treks') }}">Browse open treks</a> to get started.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
