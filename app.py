@@ -1117,9 +1117,14 @@ def api_get_users():
     return jsonify(output), 200
 
 
-# Launch Script
-if __name__ == '__main__':
-    # Programmatically create database tables before running
+def init_db():
+    """
+    Create database tables and seed the default admin account.
+
+    This runs at import time (see the call below) so it also works on serverless
+    platforms like Vercel, where the "if __name__ == '__main__'" block never
+    executes -- the platform imports the 'app' object instead of running the file.
+    """
     with app.app_context():
         db.create_all()
 
@@ -1127,22 +1132,22 @@ if __name__ == '__main__':
         # The password comes from the ADMIN_PASSWORD environment variable; if
         # that is not set, a strong random one is generated and printed once, so
         # we never ship a weak, well-known default like "admin123" (Fix #4).
+        # On Vercel you MUST set ADMIN_PASSWORD (and SECRET_KEY) as environment
+        # variables, otherwise the admin password changes on every cold start.
         admin_email = os.environ.get('ADMIN_EMAIL', 'admin@trek.com')
-        admin = User.query.filter_by(email=admin_email).first()
-        if not admin:
+        if not User.query.filter_by(email=admin_email).first():
             admin_password = os.environ.get('ADMIN_PASSWORD')
             generated = admin_password is None
             if generated:
                 admin_password = secrets.token_urlsafe(12)
 
-            admin_user = User(
+            db.session.add(User(
                 full_name="System Administrator",
                 email=admin_email,
                 phone="9876543210",
                 password_hash=generate_password_hash(admin_password),
                 role="admin"
-            )
-            db.session.add(admin_user)
+            ))
             db.session.commit()
 
             print("=" * 62)
@@ -1155,6 +1160,19 @@ if __name__ == '__main__':
                 print("  Password: (from the ADMIN_PASSWORD environment variable)")
             print("=" * 62)
 
+
+# Initialize the database as soon as this module is imported, so it works both
+# locally and on serverless (Vercel). Wrapped in try/except so a database hiccup
+# can never turn into an "unimportable module" 500 at deploy time.
+try:
+    init_db()
+except Exception as exc:
+    print(f"[init_db] warning: {exc}")
+
+
+# Launch Script -- LOCAL DEVELOPMENT ONLY. On Vercel the platform imports the
+# 'app' object above and serves it directly; app.run() is never called there.
+if __name__ == '__main__':
     # Security-friendly run defaults (Fix #2):
     #   - debug is OFF unless FLASK_DEBUG=1, so the interactive debugger (which
     #     can run arbitrary code) is never exposed by accident.

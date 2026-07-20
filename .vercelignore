@@ -1,0 +1,7 @@
+# Don't upload local dev artifacts to Vercel
+venv/
+.venv/
+__pycache__/
+*.pyc
+database/
+.secret_key
