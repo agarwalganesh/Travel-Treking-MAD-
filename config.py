@@ -31,8 +31,9 @@ def _load_secret_key():
             f.write(new_key)
         return new_key
     except OSError:
-        # Read-only filesystem (serverless) -> fall back to an ephemeral key.
-        return secrets.token_hex(32)
+        # Read-only filesystem (serverless) -> fall back to a stable fallback key so
+        # sessions stay valid across serverless cold starts if SECRET_KEY is not set.
+        return 'dev-stable-fallback-secret-key-trek-quest-12345'
 
 
 def _database_uri():

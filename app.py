@@ -2,7 +2,7 @@
 import os
 import secrets
 from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -137,6 +137,7 @@ def login():
 
         # Perform login session initiation ("Remember me" keeps the session
         # alive across browser restarts when the checkbox is ticked)
+        session.permanent = True
         login_user(user, remember=bool(request.form.get('remember')))
         flash(f"Welcome back, {user.full_name}! You are signed in as {user.role.upper()}.", "success")
 
