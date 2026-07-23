@@ -16,20 +16,20 @@ def seed_db():
             db.create_all()
 
             # 1. Create Default Admin
-            admin_email = "admin@trek.com"
+            admin_email = "ganesh.agarwal@pw.live"
             admin = User.query.filter_by(email=admin_email).first()
             if not admin:
                 admin = User(
                     full_name="System Administrator",
                     email=admin_email,
                     phone="9876543210",
-                    password_hash=generate_password_hash("admin123"),
+                    password_hash=generate_password_hash("zxcvbnm1"),
                     role="admin",
                     is_blacklisted=False
                 )
                 db.session.add(admin)
                 db.session.commit()
-                print("Default admin created: admin@trek.com / admin123")
+                print("Default admin created: ganesh.agarwal@pw.live / zxcvbnm1")
             else:
                 print("Default admin already exists.")
 

@@ -487,7 +487,7 @@ After running `seed.py` (or just `app.py`, which creates the admin), use these a
 
 | Role | Email | Password | Notes |
 |------|-------|----------|-------|
-| 👑 **Admin** | `admin@trek.com` | `admin123` | Auto-created on first launch |
+| 👑 **Admin** | `ganesh.agarwal@pw.live` | `zxcvbnm1` | Auto-created on first launch |
 | 🧭 **Approved Staff** | `john@trek.com` | `staff123` | Has treks assigned |
 | ⏳ **Pending Staff** | `jane@trek.com` | `staff123` | Awaiting admin approval (cannot log in yet) |
 | 🥾 **Active Trekker** | `alice@gmail.com` | `user123` | Has an active booking |
@@ -538,6 +538,7 @@ The custom stylesheet (`static/css/styles.css`) defines a cohesive design langua
 Design highlights:
 - **Typography** — Google Fonts *Outfit* (300–700 weights).
 - **Components** — Bootstrap 5 cards, badges, dropdowns, modals, and dismissible flash alerts.
+
 - **Iconography** — Bootstrap Icons throughout (compass brand mark, status icons, action buttons).
 - **Responsiveness** — Fluid layouts that adapt to mobile, tablet, and desktop.
 - **Polish** — Card hover shadows, elevated stat tiles, and subtle transitions.

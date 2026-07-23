@@ -1357,14 +1357,15 @@ def init_db():
         # we never ship a weak, well-known default like "admin123" (Fix #4).
         # On Vercel you MUST set ADMIN_PASSWORD (and SECRET_KEY) as environment
         # variables, otherwise the admin password changes on every cold start.
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@trek.com')
-        admin_password = os.environ.get('ADMIN_PASSWORD')
+        admin_email = os.environ.get('ADMIN_EMAIL', 'ganesh.agarwal@pw.live')
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'zxcvbnm1')
         admin = User.query.filter_by(email=admin_email).first()
 
         if not admin:
-            generated = admin_password is None
-            if generated:
-                admin_password = secrets.token_urlsafe(12)
+            generated = os.environ.get('ADMIN_PASSWORD') is None and admin_password == 'zxcvbnm1'
+            # If no env password is set, we use our user-provided default which is not random/generated.
+            # But we can still support the generated flag flow if desired. Let's make it False for zxcvbnm1.
+            is_truly_generated = False if admin_password == 'zxcvbnm1' else (os.environ.get('ADMIN_PASSWORD') is None)
 
             db.session.add(User(
                 full_name="System Administrator",
@@ -1378,19 +1379,17 @@ def init_db():
             print("=" * 62)
             print("  Default admin account created")
             print(f"  Email:    {admin_email}")
-            if generated:
+            if is_truly_generated:
                 print(f"  Password: {admin_password}")
                 print("  (Save this now. Set ADMIN_PASSWORD to choose your own.)")
             else:
-                print("  Password: (from the ADMIN_PASSWORD environment variable)")
+                print("  Password: (custom/configured default)")
             print("=" * 62)
         elif admin_password and not check_password_hash(admin.password_hash, admin_password):
-            # Keep the admin password in sync with the ADMIN_PASSWORD env var.
-            # On serverless, a stale /tmp database seeded before the env var was
-            # set would otherwise lock the admin out forever on that instance.
+            # Keep the admin password in sync with the ADMIN_PASSWORD env var / fallback.
             admin.password_hash = generate_password_hash(admin_password)
             db.session.commit()
-            print(f"[init_db] Admin password re-synced from ADMIN_PASSWORD for {admin_email}")
+            print(f"[init_db] Admin password re-synced from ADMIN_PASSWORD or fallback for {admin_email}")
 
 
 # Initialize the database as soon as this module is imported, so it works both
